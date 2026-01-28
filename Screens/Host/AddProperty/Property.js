@@ -35,7 +35,7 @@ const PropertyName = ({ navigation, route }) => {
     },
   };
 
-  navigation.navigate('PropertyType', dataToSend);
+  navigation.navigate('Step2PropertyType', dataToSend);
 };
 
   return (

@@ -60,7 +60,7 @@ const Step1Basic = () => {
       <View style={styles.footer}>
         <TouchableOpacity 
           style={styles.button}
-          onPress={() => navigation.navigate('Step2PropertyType')}
+          onPress={() => navigation.navigate('PropertyName')}
         >
           <Text style={styles.buttonText}>Get started</Text>
         </TouchableOpacity>

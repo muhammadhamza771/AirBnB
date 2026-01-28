@@ -20,7 +20,7 @@ const HostTab = ({ navigation }) => {
         tabBarActiveTintColor: '#FF385C',
         tabBarInactiveTintColor: '#888',
 
-        // 🔥 ICONS
+        // Tab Icons
         tabBarIcon: ({ color, size }) => {
           let icon;
           switch (route.name) {
@@ -39,42 +39,43 @@ const HostTab = ({ navigation }) => {
             case 'Profile':
               icon = 'person-outline';
               break;
+            default:
+              icon = 'ellipse-outline';
           }
           return <Icon name={icon} size={size} color={color} />;
         },
       })}
     >
       <Tab.Screen name="Today" component={TodayScreen} />
-
       <Tab.Screen name="My Properties" component={MyPropertiesScreen} />
 
-      {/* 🔥 ADD PROPERTY TAB (TAB HIDE LOGIC HERE) */}
-      <Tab.Screen
-        name="AddProperty"
-        component={PropertyStackNavigator}
-        options={({ route }) => {
-          const routeName =
-            getFocusedRouteNameFromRoute(route) ?? 'Step1Basic';
+      {/* AddProperty Tab with hide logic */}
+   <Tab.Screen
+  name="AddProperty"
+  component={PropertyStackNavigator}
+  options={({ route }) => {
+    const routeName = getFocusedRouteNameFromRoute(route) ?? 'Step1Basic';
 
-          const hideTabScreens = [
-            'Step1Basic',
-            'Step2PropertyType',
-            'PropertyType',
-            'GuestCapacity',
-            'RoomsScreen',
-            'HouseHighlights',
-            'CreateDescriptionScreen',
-            'AmenitiesScreen',
-            'AddDiscountsScreen',
-          ];
+    const hideTabScreens = [
+      'Step1Basic',      // hide tab on first screen
+      'Step2PropertyType',
+      'PropertyName',
+      'GuestCapacity',
+      'RoomsScreen',
+      'HouseHighlights',
+      'CreateDescriptionScreen',
+      'AmenitiesScreen',
+      'AddDiscountsScreen',
+    ];
 
-          return {
-            tabBarStyle: hideTabScreens.includes(routeName)
-              ? { display: 'none' }
-              : undefined,
-          };
-        }}
-      />
+    return {
+      tabBarStyle: hideTabScreens.includes(routeName)
+        ? { display: 'none' }
+        : undefined,
+    };
+  }}
+/>
+
 
       <Tab.Screen name="Booking" component={BookingScreen} />
 
