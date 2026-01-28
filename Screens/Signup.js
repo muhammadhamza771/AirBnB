@@ -73,7 +73,7 @@ const SignupScreen = ({ navigation }) => {
         <View style={styles.inputContainer}>
           <TextInput
             style={styles.input}
-            placeholder="Username"
+            placeholder="Fullname"
             value={username}
             onChangeText={setUsername}
           />

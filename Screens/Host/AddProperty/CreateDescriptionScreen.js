@@ -13,7 +13,7 @@ import {
 
 const CreateDescriptionsScreen = ({ navigation, route }) => {
 
-  // ✅ Previous screen data
+ 
   const prevData = route?.params?.data || {};
 
   const [listingTitle, setListingTitle] = useState(
@@ -25,7 +25,7 @@ const CreateDescriptionsScreen = ({ navigation, route }) => {
       "You'll have a great time at this comfortable place to stay."
   );
 
-  // ▶️ NEXT
+
   const handleNext = () => {
     if (!listingTitle.trim()) {
       Alert.alert('Error', 'Listing title is required');
@@ -37,14 +37,14 @@ const CreateDescriptionsScreen = ({ navigation, route }) => {
       return;
     }
 
-    // ✅ FINAL CLEAN DATA (no duplication)
+   
     const finalData = {
       ...prevData,
       listingTitle: listingTitle.trim(),
       generalDescription: generalDescription.trim(),
     };
 
-    // ✅ Show ONLY final data
+    
     Alert.alert(
       'Property Data',
       JSON.stringify(finalData, null, 2)

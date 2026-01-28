@@ -18,7 +18,7 @@ const HIGHLIGHTS = [
 ];
 
 const HouseHighlights = ({ navigation, route }) => {
-  // ✅ Previous screen data
+  
   const prevData = route?.params?.data || {};
 
   const [selected, setSelected] = useState([]);
