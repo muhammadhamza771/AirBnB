@@ -57,7 +57,7 @@ const HostTab = ({ navigation }) => {
     const routeName = getFocusedRouteNameFromRoute(route) ?? 'Step1Basic';
 
     const hideTabScreens = [
-      'Step1Basic',      // hide tab on first screen
+      'Step1Basic',     
       'Step2PropertyType',
       'PropertyName',
       'GuestCapacity',
@@ -66,6 +66,7 @@ const HostTab = ({ navigation }) => {
       'CreateDescriptionScreen',
       'AmenitiesScreen',
       'AddDiscountsScreen',
+      'LocationScreen',
     ];
 
     return {

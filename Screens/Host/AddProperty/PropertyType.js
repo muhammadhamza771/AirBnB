@@ -21,6 +21,12 @@ const PROPERTY_TYPES = [
     description: 'Guests have their own room and shared spaces.',
     icon: '🚪',
   },
+  {
+    id: 'shared_room',
+    label: 'Shared room',
+    description: 'Guests sleep in a shared room with others.',
+    icon: '🛏️',
+  },
 ];
 
 const PropertyType = ({ navigation, route }) => {

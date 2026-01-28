@@ -20,7 +20,7 @@ const discountsData = [
     id: '2',
     title: 'Last-minute discount',
     description: 'For stays booked 14 days or less before arrival',
-    percent: 0,
+    percent: 2,
   },
   {
     id: '3',
@@ -83,7 +83,7 @@ const AddDiscountsScreen = ({ navigation, route }) => {
       selectedDiscounts,
     };
     Alert.alert('Property Data', JSON.stringify({ dataToPass }, null, 2));
- 
+  navigation.navigate('LocationScreen', { data: dataToPass });
   };
 
   return (
@@ -165,7 +165,7 @@ const styles = StyleSheet.create({
   },
   backBtn: { fontSize: 16, color: '#000' },
   nextBtn: {
-    backgroundColor: '#000',
+    backgroundColor: '#f10c0c',
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 8,
