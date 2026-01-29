@@ -67,6 +67,7 @@ const HostTab = ({ navigation }) => {
       'AmenitiesScreen',
       'AddDiscountsScreen',
       'LocationScreen',
+      'PropertyImageUpload',
     ];
 
     return {

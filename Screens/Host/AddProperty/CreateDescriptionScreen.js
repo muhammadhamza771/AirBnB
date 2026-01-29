@@ -104,7 +104,7 @@ const CreateDescriptionsScreen = ({ navigation, route }) => {
           </Text>
         </View>
 
-        {/* Next Button */}
+      
         <View style={styles.footer}>
           <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
             <Text style={styles.backButtonText}>Back</Text>

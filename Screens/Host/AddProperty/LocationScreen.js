@@ -85,7 +85,7 @@ const AddressScreen = ({navigation}) => {
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Text style={styles.backButtonText}>Back</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.nextButton}>
+        <TouchableOpacity style={styles.nextButton} onPress={() => navigation.navigate('PropertyImageUpload')}>
           <Text style={styles.nextButtonText}>Next</Text>
         </TouchableOpacity>
       </View>

@@ -13,7 +13,7 @@ import AmenitiesScreen from '../Screens/Host/AddProperty/AmenitiesScreen';
 import AddDiscountsScreen from '../Screens/Host/AddProperty/Add DiscountsScreen';
 import AddressScreen from '../Screens/Host/AddProperty/LocationScreen';
 
-
+import PropertyImageUpload from '../Screens/Host/AddProperty/ImageScreen';
 const Stack = createNativeStackNavigator();
 
 const PropertyStackNavigator = () => {
@@ -30,6 +30,7 @@ const PropertyStackNavigator = () => {
       <Stack.Screen name="AmenitiesScreen" component={AmenitiesScreen} />
       <Stack.Screen name="AddDiscountsScreen" component={AddDiscountsScreen} />
       <Stack.Screen name="LocationScreen" component={AddressScreen} />
+      <Stack.Screen name="PropertyImageUpload" component={PropertyImageUpload} />
     
     </Stack.Navigator>
   );

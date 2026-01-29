@@ -56,19 +56,19 @@ const AmenitiesScreen = ({ navigation, route }) => {
   };
 
   const handleNext = () => {
-    // ✅ FINAL CLEAN DATA
+    
     const finalData = {
       ...prevData,
       amenities: selectedAmenities,
     };
 
-    // ✅ Show ONLY final data
+    
     Alert.alert(
       'Property Data',
       JSON.stringify(finalData, null, 2)
     );
 
-    // ✅ Navigate correctly
+   
     navigation.navigate('AddDiscountsScreen', {
       data: finalData,
     });

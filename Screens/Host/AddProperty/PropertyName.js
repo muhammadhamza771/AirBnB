@@ -15,6 +15,7 @@ const PROPERTY_TYPES = [
   { id: 'house', label: 'House', icon: '🏠' },
   { id: 'apartment', label: 'Apartment', icon: '🏢' },
   { id: 'room', label: 'Room', icon: '🏬' },
+  
 ];
 
 const PropertyName = ({ navigation, route }) => {
