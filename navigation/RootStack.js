@@ -19,6 +19,7 @@ const RootStack = () => {
      
       <Stack.Screen name="GuestTab" component={GuestTab} />
       <Stack.Screen name="HostTab" component={HostTab} />
+      
     </Stack.Navigator>
   );
 };

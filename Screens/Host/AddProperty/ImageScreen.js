@@ -165,6 +165,7 @@ const PropertyImageUpload = ({ navigation, route }) => {
       
       // Example: navigation.navigate('NextScreen', { data: finalData });
     }, 1500);
+    navigation.navigate('PriceScreen', );
   };
 
   const renderImageItem = (item, index) => (
@@ -683,7 +684,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 8,
-    backgroundColor: '#c51515',
+    backgroundColor: '#f51414',
     minWidth: 120,
     alignItems: 'center',
   },

@@ -1,112 +1,98 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
   SafeAreaView,
-  FlatList,
-  Alert,
 } from 'react-native';
 
-const discountsData = [
-  {
-    id: '1',
-    title: 'New listing promotion',
-    description: 'Offer 20% off your first 3 bookings',
-    percent: 20,
-  },
-  {
-    id: '2',
-    title: 'Last-minute discount',
-    description: 'For stays booked 14 days or less before arrival',
-    percent: 2,
-  },
-  {
-    id: '3',
-    title: 'Weekly discount',
-    description: 'For stays of 7 nights or more',
-    percent: 10,
-  },
-   {
-    id: '4',
-    title: 'Monthly discount',
-    description: 'For stays of 1 Months or more',
-    percent: 20,
-  },
-];
-
-const AddDiscountsScreen = ({ navigation, route }) => {
-
+const PricingStrategiesScreen = ({ navigation, route }) => {
   const prevData = route?.params?.data || {};
-  
-  const [selectedDiscounts, setSelectedDiscounts] = useState({});
 
-  
-  useEffect(() => {
-    if (prevData.selectedDiscounts) {
-      setSelectedDiscounts(prevData.selectedDiscounts);
-    }
-  }, [prevData]);
+  const [weekly, setWeekly] = useState(2);
+  const [monthly, setMonthly] = useState(3);
+  const [earlyBird, setEarlyBird] = useState(6);
 
-  const toggleDiscount = (id) => {
-    setSelectedDiscounts((prev) => ({
-      ...prev,
-      [id]: !prev[id],
-    }));
+  const increase = (value, setter) => {
+    if (value < 50) setter(value + 1);
   };
 
-  const renderDiscount = ({ item }) => {
-    const isSelected = selectedDiscounts[item.id];
-    return (
-      <TouchableOpacity
-        style={[styles.card, isSelected && styles.cardSelected]}
-        onPress={() => toggleDiscount(item.id)}
-      >
-        <View style={styles.percentBox}>
-          <Text style={styles.percentText}>{item.percent}%</Text>
-        </View>
-        <View style={styles.infoBox}>
-          <Text style={styles.title}>{item.title}</Text>
-          <Text style={styles.description}>{item.description}</Text>
-        </View>
-        <View style={styles.checkbox}>
-          {isSelected && <View style={styles.checked} />}
-        </View>
-      </TouchableOpacity>
-    );
+  const decrease = (value, setter) => {
+    if (value > 0) setter(value - 1);
   };
 
   const handleNext = () => {
     const dataToPass = {
       ...prevData,
-      selectedDiscounts,
+      pricingStrategies: {
+        weeklyDiscount: weekly,
+        monthlyDiscount: monthly,
+        earlyBirdDiscount: earlyBird,
+      },
     };
-    Alert.alert('Property Data', JSON.stringify({ dataToPass }, null, 2));
-  navigation.navigate('LocationScreen', { data: dataToPass });
+
+    navigation.navigate('LocationScreen', { data: dataToPass });
   };
+
+  const DiscountCard = ({ title, subtitle, value, onMinus, onPlus }) => (
+    <View style={styles.card}>
+      <View>
+        <Text style={styles.cardTitle}>{title}</Text>
+        <Text style={styles.cardSubtitle}>{subtitle}</Text>
+      </View>
+
+      <View style={styles.counterRow}>
+        <TouchableOpacity onPress={onMinus} style={styles.iconBtn}>
+          <Text style={styles.iconText}>−</Text>
+        </TouchableOpacity>
+
+        <Text style={styles.percentText}>{value}%</Text>
+
+        <TouchableOpacity onPress={onPlus} style={styles.iconBtn}>
+          <Text style={styles.iconText}>+</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
 
   return (
     <SafeAreaView style={styles.container}>
-     
+      <Text style={styles.header}>Pricing Strategies</Text>
 
-      <Text style={styles.pageTitle}>Add discounts</Text>
-      <Text style={styles.pageSubtitle}>
-        Help your place stand out to get booked faster and earn your first reviews.
-      </Text>
+      <DiscountCard
+        title="Weekly Discount"
+        subtitle="7 nights or more"
+        value={weekly}
+        onMinus={() => decrease(weekly, setWeekly)}
+        onPlus={() => increase(weekly, setWeekly)}
+      />
 
-      <FlatList
-        data={discountsData}
-        keyExtractor={(item) => item.id}
-        renderItem={renderDiscount}
-        style={{ marginTop: 20 }}
+      <DiscountCard
+        title="Monthly Discount"
+        subtitle="28 nights or more"
+        value={monthly}
+        onMinus={() => decrease(monthly, setMonthly)}
+        onPlus={() => increase(monthly, setMonthly)}
+      />
+
+      <DiscountCard
+        title="Early Bird Discount"
+        subtitle="Booked 2+ months early"
+        value={earlyBird}
+        onMinus={() => decrease(earlyBird, setEarlyBird)}
+        onPlus={() => increase(earlyBird, setEarlyBird)}
       />
 
       <View style={styles.footer}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.backBtn}>Back</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={handleNext} style={styles.nextBtn}>
+        <View>
+          <TouchableOpacity onPress={() => navigation.goBack()}>
+            <Text style={styles.backText}>Back</Text>
+          </TouchableOpacity>
+          <Text style={styles.stepText}>Step 12 of 13</Text>
+        </View>
+
+        <TouchableOpacity style={styles.nextBtn} onPress={handleNext}>
           <Text style={styles.nextBtnText}>Next</Text>
         </TouchableOpacity>
       </View>
@@ -114,63 +100,82 @@ const AddDiscountsScreen = ({ navigation, route }) => {
   );
 };
 
+export default PricingStrategiesScreen;
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff', padding: 20 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
-  headerBtn: { fontSize: 16, color: '#000' },
-  pageTitle: { fontSize: 28, fontWeight: 'bold', marginBottom: 5 },
-  pageSubtitle: { fontSize: 14, color: '#555' },
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+    padding: 20,
+  },
+  header: {
+    fontSize: 28,
+    fontWeight: '700',
+    marginBottom: 25,
+  },
   card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 15,
     borderWidth: 1,
     borderColor: '#ddd',
-    borderRadius: 10,
+    borderRadius: 16,
+    padding: 20,
     marginBottom: 15,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
-  cardSelected: { borderColor: '#000' },
-  percentBox: {
-    width: 50,
-    height: 50,
-    borderRadius: 10,
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  cardSubtitle: {
+    fontSize: 13,
+    color: '#777',
+    marginTop: 4,
+  },
+  counterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  iconBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: '#eee',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 15,
   },
-  percentText: { fontWeight: 'bold', fontSize: 16 },
-  infoBox: { flex: 1 },
-  title: { fontSize: 16, fontWeight: '600' },
-  description: { fontSize: 12, color: '#555', marginTop: 5 },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderWidth: 1,
-    borderColor: '#000',
-    borderRadius: 4,
-    justifyContent: 'center',
-    alignItems: 'center',
+  iconText: {
+    fontSize: 20,
+    fontWeight: '600',
   },
-  checked: {
-    width: 12,
-    height: 12,
-    backgroundColor: '#000',
-    borderRadius: 2,
+  percentText: {
+    marginHorizontal: 14,
+    fontSize: 16,
+    fontWeight: '600',
   },
   footer: {
+    marginTop: 'auto',
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 20,
+    alignItems: 'center',
   },
-  backBtn: { fontSize: 16, color: '#000' },
+  backText: {
+    fontSize: 16,
+  },
+  stepText: {
+    fontSize: 12,
+    color: '#777',
+    marginTop: 4,
+  },
   nextBtn: {
-    backgroundColor: '#f10c0c',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
+    backgroundColor: '#f44336',
+    paddingHorizontal: 26,
+    paddingVertical: 14,
+    borderRadius: 12,
   },
-  nextBtnText: { color: '#fff', fontSize: 16 },
+  nextBtnText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
 });
-
-export default AddDiscountsScreen;

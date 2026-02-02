@@ -111,7 +111,7 @@ const HouseHighlights = ({ navigation, route }) => {
           disabled={selected.length === 0}
         >
           <Text style={styles.nextText}>
-            Next {selected.length > 0 ? `(${selected.length}/2)` : ''}
+            Next 
           </Text>
         </TouchableOpacity>
       </View>
@@ -190,9 +190,7 @@ const styles = StyleSheet.create({
   backBtn: {
     paddingVertical: 16,
     paddingHorizontal: 30,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
+    textDecorationLine: 'underline',
   },
   backText: {
     fontSize: 16,
@@ -200,14 +198,14 @@ const styles = StyleSheet.create({
   },
   nextBtn: {
     flex: 1,
-    backgroundColor: '#000',
-    marginLeft: 15,
+    backgroundColor: '#e91c1c',
+    marginLeft: 10,
     paddingVertical: 16,
     borderRadius: 10,
     alignItems: 'center',
   },
   nextBtnDisabled: {
-    backgroundColor: '#ccc',
+    backgroundColor: '#9f9d9d',
   },
   nextText: {
     color: '#fff',

@@ -14,6 +14,7 @@ import AddDiscountsScreen from '../Screens/Host/AddProperty/Add DiscountsScreen'
 import AddressScreen from '../Screens/Host/AddProperty/LocationScreen';
 
 import PropertyImageUpload from '../Screens/Host/AddProperty/ImageScreen';
+import PriceScreen from '../Screens/Host/AddProperty/PriceScreen';
 const Stack = createNativeStackNavigator();
 
 const PropertyStackNavigator = () => {
@@ -22,7 +23,7 @@ const PropertyStackNavigator = () => {
       <Stack.Screen name="Step1Basic" component={Step1Basic} />
     <Stack.Screen name="PropertyName" component={PropertyName} />
       <Stack.Screen name="Step2PropertyType" component={PropertyType} />
-      
+
       <Stack.Screen name="GuestCapacity" component={GuestCapacity} />
       <Stack.Screen name="RoomsScreen" component={RoomsScreen} />
       <Stack.Screen name="HouseHighlights" component={HouseHighlights} />
@@ -31,6 +32,7 @@ const PropertyStackNavigator = () => {
       <Stack.Screen name="AddDiscountsScreen" component={AddDiscountsScreen} />
       <Stack.Screen name="LocationScreen" component={AddressScreen} />
       <Stack.Screen name="PropertyImageUpload" component={PropertyImageUpload} />
+      <Stack.Screen name="PriceScreen" component={PriceScreen} />
     
     </Stack.Navigator>
   );

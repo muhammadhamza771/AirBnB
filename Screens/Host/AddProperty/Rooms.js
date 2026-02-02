@@ -8,6 +8,7 @@ import {
   SafeAreaView,
   StatusBar,
   StyleSheet,
+  Switch,
 } from 'react-native';
 
 const BED_TYPES = ['Queen Bed', 'Single Bed', 'Double Bed', 'Mattress'];
@@ -48,31 +49,56 @@ const RoomCard = ({ room, index, updateRoom }) => (
       </View>
     </View>
 
+   
+
     {/* Beds */}
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>Beds</Text>
-      {BED_TYPES.map(type => (
-        <View key={type} style={styles.counterRow}>
-          <Text style={styles.bedTypeLabel}>{type}</Text>
-          <View style={styles.counterControls}>
-            <TouchableOpacity
-              style={styles.counterButton}
-              onPress={() => updateRoom(index, type, Math.max(0, room.beds[type] - 1))}
-            >
-              <Text style={styles.counterButtonText}>-</Text>
-            </TouchableOpacity>
-            <View style={styles.counterDisplay}>
-              <Text style={styles.counterText}>{room.beds[type] || 0}</Text>
+      {BED_TYPES.map(type => {
+        if (type === 'Mattress' && !room.showMattress) return null; // hide mattress if toggle is off
+        return (
+          <View key={type} style={styles.counterRow}>
+            <Text style={styles.bedTypeLabel}>{type}</Text>
+            
+            <View style={styles.counterControls}>
+              <TouchableOpacity
+                style={styles.counterButton}
+                onPress={() =>
+                  updateRoom(index, type, Math.max(0, room.beds[type] - 1))
+                }
+              >
+                <Text style={styles.counterButtonText}>-</Text>
+              </TouchableOpacity>
+              <View style={styles.counterDisplay}>
+                <Text style={styles.counterText}>{room.beds[type] || 0}</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.counterButton}
+                onPress={() =>
+                  updateRoom(index, type, (room.beds[type] || 0) + 1)
+                }
+              >
+                <Text style={styles.counterButtonText}>+</Text>
+                
+              </TouchableOpacity>
+              
             </View>
-            <TouchableOpacity
-              style={styles.counterButton}
-              onPress={() => updateRoom(index, type, (room.beds[type] || 0) + 1)}
-            >
-              <Text style={styles.counterButtonText}>+</Text>
-            </TouchableOpacity>
+            
           </View>
-        </View>
-      ))}
+
+        );
+        
+      })}
+       {/* Mattress Toggle */}
+    <View style={[styles.section, styles.toggleRow]}>
+      <Text style={styles.sectionTitle}>Mattress?</Text>
+      <Switch
+        value={room.showMattress}
+        onValueChange={value => updateRoom(index, 'showMattress', value)}
+        trackColor={{ false: '#ccc', true: '#ff385c' }}
+        thumbColor={room.showMattress ? '#fff' : '#fff'}
+      />
+    </View>
     </View>
   </View>
 );
@@ -80,9 +106,9 @@ const RoomCard = ({ room, index, updateRoom }) => (
 const RoomsScreen = ({ route, navigation }) => {
   const prevData = route?.params?.data || { propertyName: 'N/A' };
 
-  const [rooms, setRooms] = useState([{ washroom: 'Attached', beds: {} }]);
+  const [rooms, setRooms] = useState([{ washroom: 'Attached', beds: {}, showMattress: false }]);
 
-  const addRoom = () => setRooms([...rooms, { washroom: 'Attached', beds: {} }]);
+  const addRoom = () => setRooms([...rooms, { washroom: 'Attached', beds: {}, showMattress: false }]);
   const removeRoom = () => {
     if (rooms.length > 1) setRooms(rooms.slice(0, -1));
   };
@@ -102,11 +128,6 @@ const RoomsScreen = ({ route, navigation }) => {
     Alert.alert('Property Data', JSON.stringify({ ...prevData, rooms }, null, 2));
     navigation.navigate('CreateDescriptionScreen', { data: { ...prevData, rooms } });
   };
-
-  const totalBeds = rooms.reduce(
-    (sum, room) => sum + Object.values(room.beds).reduce((a, b) => a + b, 0),
-    0
-  );
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -149,12 +170,10 @@ const RoomsScreen = ({ route, navigation }) => {
 
         {/* Buttons Row */}
         <View style={styles.buttonRow}>
-          {/* Back Button */}
           <TouchableOpacity style={styles.rowButton} onPress={() => navigation.goBack()}>
             <Text style={styles.nextButtonText}>Back</Text>
           </TouchableOpacity>
 
-          {/* Next Button */}
           <TouchableOpacity style={styles.rowButton} onPress={handleNext}>
             <Text style={styles.nextButtonText}>Next</Text>
           </TouchableOpacity>
@@ -193,6 +212,8 @@ const styles = StyleSheet.create({
   optionText: { fontSize: 14, fontWeight: '500', color: '#495057' },
   optionTextActive: { color: '#ff385c', fontWeight: '600' },
 
+  toggleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+
   counterRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, paddingVertical: 8 },
   bedTypeLabel: { fontSize: 15, color: '#495057', flex: 1 },
   counterControls: { flexDirection: 'row', alignItems: 'center' },
@@ -209,12 +230,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginHorizontal: 4,
-    
-    
   },
   nextButtonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
 });
-
-
-
-

@@ -41,7 +41,7 @@ const GuestCapacity = ({ navigation, route }) => {
   const [children, setChildren] = useState(1);
   const [infants, setInfants] = useState(0);
 
-  // previous screen ka data
+
   const prevData = route.params || {};
 
   const handleNext = () => {

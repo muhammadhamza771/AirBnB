@@ -1,246 +1,204 @@
 import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  TextInput, 
-  TouchableOpacity, 
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
   StyleSheet,
+  SafeAreaView,
+  ActivityIndicator,
+  PermissionsAndroid,
+  Platform,
+  Alert,
   ScrollView,
-  SafeAreaView 
 } from 'react-native';
+import MapView, { Marker } from 'react-native-maps';
+import Geolocation from '@react-native-community/geolocation';
+import axios from 'axios';
 
-const AddressScreen = ({navigation}) => {
-  const [address, setAddress] = useState('');
+const AddressScreen = ({ navigation }) => {
+  const [location, setLocation] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const [street, setStreet] = useState('');
   const [city, setCity] = useState('');
+  const [state, setState] = useState('');
+  const [postcode, setPostcode] = useState('');
   const [country, setCountry] = useState('');
+
+  // Parse address from Nominatim response
+  const parseAddress = (addr) => {
+    const street = [addr.road, addr.neighbourhood].filter(Boolean).join(', ');
+    const city = addr.city || addr.town || addr.village || addr.county || 'Rawalpindi';
+    const state = addr.state || '';
+    const postcode = addr.postcode || '';
+    const country = addr.country || 'Pakistan';
+    return { street, city, state, postcode, country };
+  };
+
+  // Reverse geocode
+  const reverseGeocode = async (latitude, longitude) => {
+    try {
+      const res = await axios.get(
+        `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`,
+        {
+          headers: {
+            'User-Agent': 'AirbnbReplica/1.0',
+            'Accept-Language': 'en',
+          },
+        }
+      );
+
+      const addr = res.data.address || {};
+      const parsed = parseAddress(addr);
+
+      setStreet(parsed.street);
+      setCity('Rawalpindi');
+      setState(parsed.state);
+      setPostcode(parsed.postcode);
+      setCountry(parsed.country);
+    } catch (err) {
+      console.log('Reverse geocode error:', err);
+      Alert.alert('Error', 'Unable to fetch address');
+    }
+  };
+
+  // Get current location
+  const getCurrentLocation = async () => {
+    setLoading(true);
+
+    try {
+      if (Platform.OS === 'android') {
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
+        );
+        if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+          Alert.alert('Permission denied');
+          setLoading(false);
+          return;
+        }
+      }
+
+      Geolocation.getCurrentPosition(
+        async (pos) => {
+          const { latitude, longitude } = pos.coords;
+          const region = {
+            latitude,
+            longitude,
+            latitudeDelta: 0.01,
+            longitudeDelta: 0.01,
+          };
+          setLocation(region);
+          await reverseGeocode(latitude, longitude);
+          setLoading(false);
+        },
+        (err) => {
+          console.log(err);
+          Alert.alert('Error', 'Unable to get location');
+          setLoading(false);
+        },
+        { enableHighAccuracy: true, timeout: 15000 }
+      );
+    } catch (err) {
+      console.log(err);
+      setLoading(false);
+    }
+  };
+
+  // Next button
+  const goNext = () => {
+    if (!location) {
+      Alert.alert('Please select your location first');
+      return;
+    }
+
+    navigation.navigate('PropertyImageUpload', {
+      latitude: location.latitude,
+      longitude: location.longitude,
+      street,
+      city,
+      state,
+      postcode,
+      country,
+    });
+  };
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.stepText}>Step 6 of 13</Text>
-        <Text style={styles.title}>Enter your address</Text>
-        <Text style={styles.subtitle}>
-          Your address is only shared with guests after they've booked.
-        </Text>
-      </View>
+      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Enter your address</Text>
+        </View>
 
-      <ScrollView style={styles.content}>
-        <View style={styles.section}>
-          <TouchableOpacity style={styles.locationButton}>
-            <Text style={styles.locationButtonText}>Use my current location</Text>
-            <Text style={styles.chevron}>&gt;</Text>
+        <View style={styles.content}>
+          <TouchableOpacity style={styles.button} onPress={getCurrentLocation}>
+            <Text style={styles.buttonText}>Use my current location</Text>
+            {loading && <ActivityIndicator style={{ marginLeft: 10 }} />}
           </TouchableOpacity>
-        </View>
 
-        <View style={styles.dividerContainer}>
-          <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>or</Text>
-          <View style={styles.dividerLine} />
-        </View>
+          <TextInput style={styles.input} value={street} onChangeText={setStreet} placeholder="Street / Address" />
+          <TextInput style={styles.input} value={city} onChangeText={setCity} placeholder="City" />
+          <TextInput style={styles.input} value={state} onChangeText={setState} placeholder="State" />
+          <TextInput style={styles.input} value={postcode} onChangeText={setPostcode} placeholder="Postcode" />
+          <TextInput style={styles.input} value={country} onChangeText={setCountry} placeholder="Country" />
 
-        <View style={styles.section}>
-          <Text style={styles.inputLabel}>Full Address / Street</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="-"
-            placeholderTextColor="#717171"
-            value={address}
-            onChangeText={setAddress}
-          />
-        </View>
+          {location && (
+            <MapView
+              style={styles.map}
+              region={location}
+              showsUserLocation={true}
+              onPress={(e) => {
+                const { latitude, longitude } = e.nativeEvent.coordinate;
+                setLocation({ ...location, latitude, longitude });
+                reverseGeocode(latitude, longitude);
+              }}
+            >
+              <Marker
+                coordinate={location}
+                draggable
+                onDragEnd={(e) => {
+                  const { latitude, longitude } = e.nativeEvent.coordinate;
+                  setLocation({ ...location, latitude, longitude });
+                  reverseGeocode(latitude, longitude);
+                }}
+              />
+            </MapView>
+          )}
 
-        <View style={styles.section}>
-          <Text style={styles.inputLabel}>City</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="-"
-            placeholderTextColor="#717171"
-            value={city}
-            onChangeText={setCity}
-          />
-        </View>
+          <View style={styles.footer}>
+            <TouchableOpacity onPress={() => navigation.goBack()}>
+              <Text style={styles.back}>Back</Text>
+            </TouchableOpacity>
 
-        <View style={styles.section}>
-          <Text style={styles.inputLabel}>Country</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="-"
-            placeholderTextColor="#717171"
-            value={country}
-            onChangeText={setCountry}
-          />
-        </View>
-
-        <View style={styles.mapPlaceholder}>
-          <View style={styles.mapHeader}>
-            <Text style={styles.mapText}>MAP SIMULATION</Text>
-          </View>
-          <View style={styles.mapContent}>
-            <Text style={styles.mapPlaceholderText}>Map would appear here</Text>
+            <TouchableOpacity style={styles.nextBtn} onPress={goNext}>
+              <Text style={styles.nextText}>Next</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </ScrollView>
-
-      <View style={styles.footer}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.backButtonText}>Back</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.nextButton} onPress={() => navigation.navigate('PropertyImageUpload')}>
-          <Text style={styles.nextButtonText}>Next</Text>
-        </TouchableOpacity>
-      </View>
     </SafeAreaView>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  header: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#EBEBEB',
-  },
-  stepText: {
-    fontSize: 12,
-    color: '#717171',
-    marginBottom: 6,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: '600',
-    color: '#222222',
-    marginBottom: 6,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#717171',
-    lineHeight: 18,
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 20,
-  },
-  section: {
-    marginBottom: 16,
-  },
-  locationButton: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderWidth: 1.5,
-    borderColor: '#222222',
-    borderRadius: 8,
-    backgroundColor: '#fff',
-  },
-  locationButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#222222',
-  },
-  chevron: {
-    fontSize: 18,
-    color: '#222222',
-    fontWeight: '300',
-  },
-  dividerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#EBEBEB',
-  },
-  dividerText: {
-    paddingHorizontal: 12,
-    fontSize: 12,
-    color: '#717171',
-    fontWeight: '500',
-  },
-  inputLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#222222',
-    marginBottom: 6,
-  },
-  input: {
-    borderWidth: 1.5,
-    borderColor: '#CCCCCC',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    color: '#222222',
-  },
-  mapPlaceholder: {
-    borderWidth: 1.5,
-    borderColor: '#CCCCCC',
-    borderRadius: 8,
-    marginTop: 8,
-    marginBottom: 24,
-    overflow: 'hidden',
-  },
-  mapHeader: {
-    backgroundColor: '#F7F7F7',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#EBEBEB',
-  },
-  mapText: {
-    fontSize: 12,
-    color: '#717171',
-    fontWeight: '500',
-    textAlign: 'center',
-  },
-  mapContent: {
-    height: 150,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F7F7F7',
-  },
-  mapPlaceholderText: {
-    fontSize: 14,
-    color: '#717171',
-  },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#EBEBEB',
-    backgroundColor: '#fff',
-  },
-  backButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-   
-  },
-  backButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#222222',
-  },
-  nextButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 6,
-    backgroundColor: '#f60c0c',
-  },
-  nextButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
-  },
-});
-
 export default AddressScreen;
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#fff' },
+  header: { padding: 20, borderBottomWidth: 1, borderBottomColor: '#eee' },
+  title: { fontSize: 22, fontWeight: '600', color: '#111' },
+  content: { flex: 1, padding: 20 },
+
+  button: { flexDirection: 'row', alignItems: 'center', padding: 12, backgroundColor: '#eee', borderRadius: 8, marginBottom: 16 },
+  buttonText: { fontSize: 16, fontWeight: '600', color: '#111' },
+
+  input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 12, marginBottom: 12, backgroundColor: '#f7f7f7' },
+
+  map: { height: 220, borderRadius: 12, marginBottom: 20 },
+
+  footer: { flexDirection: 'row', justifyContent: 'space-between', borderTopWidth: 1, borderTopColor: '#eee', paddingTop: 15 },
+
+  back: { fontSize: 16, textDecorationLine: 'underline' },
+
+  nextBtn: { backgroundColor: '#FF385C', paddingHorizontal: 30, paddingVertical: 12, borderRadius: 10 },
+  nextText: { color: '#fff', fontWeight: '700' },
+});

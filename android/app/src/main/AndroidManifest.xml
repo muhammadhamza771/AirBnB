@@ -1,10 +1,14 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Existing permissions -->
+    <!-- Internet -->
     <uses-permission android:name="android.permission.INTERNET" />
-    
-    <!-- Camera permission added -->
+
+    <!-- Camera -->
     <uses-permission android:name="android.permission.CAMERA" />
+
+    <!-- Location -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
     <application
         android:name=".MainApplication"
@@ -13,8 +17,13 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:allowBackup="false"
         android:theme="@style/AppTheme"
-        android:usesCleartextTraffic="${usesCleartextTraffic}"
+        android:usesCleartextTraffic="true"
         android:supportsRtl="true">
+
+        <!-- ✅ GOOGLE MAP API KEY -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="AIzaSyCdmIHvKSHu-vKEeN0hcvjQrOtr8row6qE" />
 
         <activity
             android:name=".MainActivity"
@@ -23,10 +32,12 @@
             android:launchMode="singleTask"
             android:windowSoftInputMode="adjustResize"
             android:exported="true">
+
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
         </activity>
 
     </application>

@@ -3,7 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 
-import TodayScreen from '../Screens/Host/TodayScreen';
+
 import MyPropertiesScreen from '../Screens/Host/MyPropertiesScreen';
 import BookingScreen from '../Screens/Host/BookingScreen';
 import ProfileScreen from '../Screens/Host/ProfileScreen';
@@ -24,9 +24,7 @@ const HostTab = ({ navigation }) => {
         tabBarIcon: ({ color, size }) => {
           let icon;
           switch (route.name) {
-            case 'Today':
-              icon = 'time-outline';
-              break;
+          
             case 'My Properties':
               icon = 'home-outline';
               break;
@@ -46,7 +44,7 @@ const HostTab = ({ navigation }) => {
         },
       })}
     >
-      <Tab.Screen name="Today" component={TodayScreen} />
+    
       <Tab.Screen name="My Properties" component={MyPropertiesScreen} />
 
       {/* AddProperty Tab with hide logic */}
