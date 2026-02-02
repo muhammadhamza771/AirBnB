@@ -15,6 +15,7 @@ import {
 import MapView, { Marker } from 'react-native-maps';
 import Geolocation from '@react-native-community/geolocation';
 import axios from 'axios';
+import Icon from 'react-native-vector-icons/MaterialIcons'; // For location icon
 
 const AddressScreen = ({ navigation }) => {
   const [location, setLocation] = useState(null);
@@ -26,7 +27,6 @@ const AddressScreen = ({ navigation }) => {
   const [postcode, setPostcode] = useState('');
   const [country, setCountry] = useState('');
 
-  // Parse address from Nominatim response
   const parseAddress = (addr) => {
     const street = [addr.road, addr.neighbourhood].filter(Boolean).join(', ');
     const city = addr.city || addr.town || addr.village || addr.county || 'Rawalpindi';
@@ -36,7 +36,6 @@ const AddressScreen = ({ navigation }) => {
     return { street, city, state, postcode, country };
   };
 
-  // Reverse geocode
   const reverseGeocode = async (latitude, longitude) => {
     try {
       const res = await axios.get(
@@ -63,7 +62,6 @@ const AddressScreen = ({ navigation }) => {
     }
   };
 
-  // Get current location
   const getCurrentLocation = async () => {
     setLoading(true);
 
@@ -105,7 +103,6 @@ const AddressScreen = ({ navigation }) => {
     }
   };
 
-  // Next button
   const goNext = () => {
     if (!location) {
       Alert.alert('Please select your location first');
@@ -128,18 +125,25 @@ const AddressScreen = ({ navigation }) => {
       <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
         <View style={styles.header}>
           <Text style={styles.title}>Enter your address</Text>
+          <Text style={styles.subtitle}>
+            Your address is only shared with guests after they've booked.
+          </Text>
         </View>
 
         <View style={styles.content}>
-          <TouchableOpacity style={styles.button} onPress={getCurrentLocation}>
-            <Text style={styles.buttonText}>Use my current location</Text>
+          <TouchableOpacity style={styles.locationButton} onPress={getCurrentLocation}>
+            <Icon name="location-on" size={24} color="#FF385C" />
+            <Text style={styles.locationButtonText}>Use my current location</Text>
             {loading && <ActivityIndicator style={{ marginLeft: 10 }} />}
           </TouchableOpacity>
 
-          <TextInput style={styles.input} value={street} onChangeText={setStreet} placeholder="Street / Address" />
+          <TextInput
+            style={styles.input}
+            value={street}
+            onChangeText={setStreet}
+            placeholder="Street / Address"
+          />
           <TextInput style={styles.input} value={city} onChangeText={setCity} placeholder="City" />
-          <TextInput style={styles.input} value={state} onChangeText={setState} placeholder="State" />
-          <TextInput style={styles.input} value={postcode} onChangeText={setPostcode} placeholder="Postcode" />
           <TextInput style={styles.input} value={country} onChangeText={setCountry} placeholder="Country" />
 
           {location && (
@@ -185,20 +189,37 @@ export default AddressScreen;
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   header: { padding: 20, borderBottomWidth: 1, borderBottomColor: '#eee' },
-  title: { fontSize: 22, fontWeight: '600', color: '#111' },
+  title: { fontSize: 22, fontWeight: '700', color: '#111' },
+  subtitle: { fontSize: 14, color: '#777', marginTop: 4 },
+
   content: { flex: 1, padding: 20 },
 
-  button: { flexDirection: 'row', alignItems: 'center', padding: 12, backgroundColor: '#eee', borderRadius: 8, marginBottom: 16 },
-  buttonText: { fontSize: 16, fontWeight: '600', color: '#111' },
+  locationButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 14,
+    backgroundColor: '#F7F7F7',
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  locationButtonText: { fontSize: 16, fontWeight: '600', color: '#111', marginLeft: 8 },
 
-  input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 12, marginBottom: 12, backgroundColor: '#f7f7f7' },
+  input: {
+    borderWidth: 1,
+    borderColor: '#eee',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 12,
+    backgroundColor: '#F7F7F7',
+    fontSize: 16,
+  },
 
-  map: { height: 220, borderRadius: 12, marginBottom: 20 },
+  map: { height: 200, borderRadius: 12, marginBottom: 20 },
 
-  footer: { flexDirection: 'row', justifyContent: 'space-between', borderTopWidth: 1, borderTopColor: '#eee', paddingTop: 15 },
+  footer: { flexDirection: 'row', justifyContent: 'space-between', paddingTop: 10 },
 
-  back: { fontSize: 16, textDecorationLine: 'underline' },
+  back: { fontSize: 16, textDecorationLine: 'underline', color: '#111' },
 
-  nextBtn: { backgroundColor: '#FF385C', paddingHorizontal: 30, paddingVertical: 12, borderRadius: 10 },
-  nextText: { color: '#fff', fontWeight: '700' },
+  nextBtn: { backgroundColor: '#FF385C', paddingHorizontal: 30, paddingVertical: 14, borderRadius: 12 },
+  nextText: { color: '#fff', fontWeight: '700', fontSize: 16 },
 });
