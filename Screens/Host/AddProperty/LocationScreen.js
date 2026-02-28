@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import {
   View,
   Text,
@@ -15,26 +15,21 @@ import {
 import MapView, { Marker } from 'react-native-maps';
 import Geolocation from '@react-native-community/geolocation';
 import axios from 'axios';
-import Icon from 'react-native-vector-icons/MaterialIcons'; 
+import Icon from 'react-native-vector-icons/MaterialIcons';
+import { PropertyContext } from '../../../context/PropertyContext';
 
 const AddressScreen = ({ navigation }) => {
+  const { updateMultiple } = useContext(PropertyContext);
+
   const [location, setLocation] = useState(null);
   const [loading, setLoading] = useState(false);
 
   const [street, setStreet] = useState('');
   const [city, setCity] = useState('');
-  const [state, setState] = useState('');
-  const [postcode, setPostcode] = useState('');
   const [country, setCountry] = useState('');
 
-  const parseAddress = (addr) => {
-    const street = [addr.road, addr.neighbourhood].filter(Boolean).join(', ');
-    const city = addr.city || addr.town || addr.village || addr.county || 'Rawalpindi';
-    const state = addr.state || '';
-    const postcode = addr.postcode || '';
-    const country = addr.country || 'Pakistan';
-    return { street, city, state, postcode, country };
-  };
+  const [nearbyPlaces, setNearbyPlaces] = useState([]);
+  const [newPlace, setNewPlace] = useState('');
 
   const reverseGeocode = async (latitude, longitude) => {
     try {
@@ -49,15 +44,11 @@ const AddressScreen = ({ navigation }) => {
       );
 
       const addr = res.data.address || {};
-      const parsed = parseAddress(addr);
 
-      setStreet(parsed.street);
-      setCity('Rawalpindi');
-      setState(parsed.state);
-      setPostcode(parsed.postcode);
-      setCountry(parsed.country);
+      setStreet(addr.road || '');
+      setCity(addr.city || addr.town || '');
+      setCountry(addr.country || '');
     } catch (err) {
-      console.log('Reverse geocode error:', err);
       Alert.alert('Error', 'Unable to fetch address');
     }
   };
@@ -67,107 +58,149 @@ const AddressScreen = ({ navigation }) => {
 
     try {
       if (Platform.OS === 'android') {
-        const granted = await PermissionsAndroid.requestMultiple([
-          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-          PermissionsAndroid.PERMISSIONS.ACCESS_COARSE_LOCATION,
-        ]);
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
+        );
 
-        if (
-          granted[PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION] !==
-            PermissionsAndroid.RESULTS.GRANTED &&
-          granted[PermissionsAndroid.PERMISSIONS.ACCESS_COARSE_LOCATION] !==
-            PermissionsAndroid.RESULTS.GRANTED
-        ) {
-          Alert.alert('Permission denied', 'Location permission is required to get your current location.');
+        if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+          Alert.alert('Permission denied');
           setLoading(false);
           return;
         }
-      } else {
-        // iOS: request authorization
-        if (Geolocation && Geolocation.requestAuthorization) {
-          Geolocation.requestAuthorization();
-        }
       }
+
       Geolocation.getCurrentPosition(
         async (pos) => {
           const { latitude, longitude } = pos.coords;
+
           const region = {
             latitude,
             longitude,
             latitudeDelta: 0.01,
             longitudeDelta: 0.01,
           };
+
           setLocation(region);
           await reverseGeocode(latitude, longitude);
           setLoading(false);
         },
         (err) => {
-          console.log('Geolocation error:', err);
-          Alert.alert('Location error', err.message || 'Unable to get location');
+          Alert.alert('Location error', err.message);
           setLoading(false);
         },
-        { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+        { enableHighAccuracy: true }
       );
     } catch (err) {
-      console.log(err);
       setLoading(false);
     }
   };
 
-  const goNext = () => {
-  
+  const addPlace = () => {
+    if (!newPlace.trim()) return;
+    setNearbyPlaces([...nearbyPlaces, newPlace.trim()]);
+    setNewPlace('');
+  };
 
-    navigation.navigate('PetsStepScreen', );
+  const removePlace = (index) => {
+    const updated = nearbyPlaces.filter((_, i) => i !== index);
+    setNearbyPlaces(updated);
+  };
+
+  const goNext = () => {
+    if (!street || !city || !country) {
+      Alert.alert('Error', 'Please complete address');
+      return;
+    }
+
+    updateMultiple({
+      address: {
+        street,
+        city,
+        country,
+      },
+      location: location
+        ? {
+            latitude: location.latitude,
+            longitude: location.longitude,
+          }
+        : null,
+      nearbyPlaces,
+    });
+
+    navigation.navigate('PetsStepScreen');
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 30 }}>
         <View style={styles.header}>
           <Text style={styles.title}>Enter your address</Text>
           <Text style={styles.subtitle}>
-            Your address is only shared with guests after they've booked.
+            Your address is only shared after booking.
           </Text>
         </View>
 
         <View style={styles.content}>
-          <TouchableOpacity style={styles.locationButton} onPress={getCurrentLocation}>
-            <Icon name="location-on" size={24} color="#FF385C" />
-            <Text style={styles.locationButtonText}>Use my current location</Text>
+          <TouchableOpacity
+            style={styles.locationButton}
+            onPress={getCurrentLocation}
+          >
+            <Icon name="location-on" size={22} color="#FF385C" />
+            <Text style={styles.locationText}>
+              Use my current location
+            </Text>
             {loading && <ActivityIndicator style={{ marginLeft: 10 }} />}
           </TouchableOpacity>
 
           <TextInput
             style={styles.input}
+            placeholder="Street"
             value={street}
             onChangeText={setStreet}
-            placeholder="Street / Address"
           />
-          <TextInput style={styles.input} value={city} onChangeText={setCity} placeholder="City" />
-          <TextInput style={styles.input} value={country} onChangeText={setCountry} placeholder="Country" />
+          <TextInput
+            style={styles.input}
+            placeholder="City"
+            value={city}
+            onChangeText={setCity}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Country"
+            value={country}
+            onChangeText={setCountry}
+          />
 
           {location && (
-            <MapView
-              style={styles.map}
-              region={location}
-              showsUserLocation={true}
-              onPress={(e) => {
-                const { latitude, longitude } = e.nativeEvent.coordinate;
-                setLocation({ ...location, latitude, longitude });
-                reverseGeocode(latitude, longitude);
-              }}
-            >
-              <Marker
-                coordinate={location}
-                draggable
-                onDragEnd={(e) => {
-                  const { latitude, longitude } = e.nativeEvent.coordinate;
-                  setLocation({ ...location, latitude, longitude });
-                  reverseGeocode(latitude, longitude);
-                }}
-              />
+            <MapView style={styles.map} region={location} showsUserLocation>
+              <Marker coordinate={location} />
             </MapView>
           )}
+
+          <View style={styles.nearbySection}>
+            <Text style={styles.sectionTitle}>Nearby Places</Text>
+
+            <View style={styles.addRow}>
+              <TextInput
+                style={styles.addInput}
+                placeholder="Add nearby place"
+                value={newPlace}
+                onChangeText={setNewPlace}
+              />
+              <TouchableOpacity style={styles.addBtn} onPress={addPlace}>
+                <Text style={styles.addBtnText}>Add</Text>
+              </TouchableOpacity>
+            </View>
+
+            {nearbyPlaces.map((place, index) => (
+              <View key={index} style={styles.placeItem}>
+                <Text style={styles.placeText}>{place}</Text>
+                <TouchableOpacity onPress={() => removePlace(index)}>
+                  <Icon name="delete" size={20} color="#FF385C" />
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
 
           <View style={styles.footer}>
             <TouchableOpacity onPress={() => navigation.goBack()}>
@@ -188,38 +221,82 @@ export default AddressScreen;
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
-  header: { padding: 20, borderBottomWidth: 1, borderBottomColor: '#eee' },
+
+  header: { padding: 20, borderBottomWidth: 1, borderColor: '#eee' },
   title: { fontSize: 22, fontWeight: '700', color: '#111' },
   subtitle: { fontSize: 14, color: '#777', marginTop: 4 },
 
-  content: { flex: 1, padding: 20 },
+  content: { padding: 20 },
 
   locationButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 14,
     backgroundColor: '#F7F7F7',
-    borderRadius: 12,
+    padding: 14,
+    borderRadius: 10,
     marginBottom: 16,
   },
-  locationButtonText: { fontSize: 16, fontWeight: '600', color: '#111', marginLeft: 8 },
+  locationText: { marginLeft: 8, fontWeight: '600', fontSize: 15 },
 
   input: {
     borderWidth: 1,
     borderColor: '#eee',
-    borderRadius: 12,
+    borderRadius: 10,
     padding: 14,
     marginBottom: 12,
-    backgroundColor: '#F7F7F7',
-    fontSize: 16,
+    backgroundColor: '#F9F9F9',
   },
 
-  map: { height: 200, borderRadius: 12, marginBottom: 20 },
+  map: {
+    height: 200,
+    borderRadius: 12,
+    marginBottom: 20,
+  },
 
-  footer: { flexDirection: 'row', justifyContent: 'space-between', paddingTop: 10 },
+  nearbySection: { marginBottom: 20 },
+  sectionTitle: { fontSize: 18, fontWeight: '700', marginBottom: 10 },
 
-  back: { fontSize: 16, textDecorationLine: 'underline', color: '#111' },
+  addRow: { flexDirection: 'row', marginBottom: 10 },
+  addInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#eee',
+    borderRadius: 10,
+    padding: 12,
+    backgroundColor: '#F9F9F9',
+  },
+  addBtn: {
+    backgroundColor: '#FF385C',
+    paddingHorizontal: 18,
+    justifyContent: 'center',
+    borderRadius: 10,
+    marginLeft: 8,
+  },
+  addBtnText: { color: '#fff', fontWeight: '600' },
 
-  nextBtn: { backgroundColor: '#FF385C', paddingHorizontal: 30, paddingVertical: 14, borderRadius: 12 },
-  nextText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+  placeItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#F7F7F7',
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 8,
+  },
+  placeText: { fontSize: 15 },
+
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 20,
+  },
+  back: { textDecorationLine: 'underline', fontSize: 16 },
+
+  nextBtn: {
+    backgroundColor: '#FF385C',
+    paddingHorizontal: 30,
+    paddingVertical: 14,
+    borderRadius: 10,
+  },
+  nextText: { color: '#fff', fontWeight: '700' },
 });

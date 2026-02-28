@@ -10,7 +10,7 @@ export const PropertyProvider = ({ children }) => {
     
    
     propertyType: '',
-    guestCapacity: [],
+    guestCapacity: 0,
     rooms: {},
     
    
@@ -25,7 +25,7 @@ export const PropertyProvider = ({ children }) => {
     
     
     images: [],
-    location: {},
+    location: [],
     
    
     habits: [],
