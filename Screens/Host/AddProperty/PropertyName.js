@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import {
   View,
   Text,
@@ -10,20 +10,25 @@ import {
   ScrollView,
   StatusBar,
 } from 'react-native';
+import { PropertyContext } from '../../../context/PropertyContext';
 
 const PROPERTY_TYPES = [
   { id: 'house', label: 'House', icon: '🏠' },
   { id: 'apartment', label: 'Apartment', icon: '🏢' },
-  { id: 'room', label: 'Room', icon: '🏬' },
+  { id: 'Villa', label: 'Villa', icon: '🏬' },
   
 ];
 
 const PropertyName = ({ navigation, route }) => {
   const [selected, setSelected] = useState(null);
   const prevData = route.params || {};
+  const { updatePropertyData } = useContext(PropertyContext);
 
   const handleNext = () => {
     if (!selected) return;
+
+    // Save to context
+    updatePropertyData('propertyName', selected.label);
 
     const dataToSend = {
       ...prevData,

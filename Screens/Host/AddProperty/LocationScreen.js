@@ -15,7 +15,7 @@ import {
 import MapView, { Marker } from 'react-native-maps';
 import Geolocation from '@react-native-community/geolocation';
 import axios from 'axios';
-import Icon from 'react-native-vector-icons/MaterialIcons'; // For location icon
+import Icon from 'react-native-vector-icons/MaterialIcons'; 
 
 const AddressScreen = ({ navigation }) => {
   const [location, setLocation] = useState(null);
@@ -67,16 +67,27 @@ const AddressScreen = ({ navigation }) => {
 
     try {
       if (Platform.OS === 'android') {
-        const granted = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
-        );
-        if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
-          Alert.alert('Permission denied');
+        const granted = await PermissionsAndroid.requestMultiple([
+          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+          PermissionsAndroid.PERMISSIONS.ACCESS_COARSE_LOCATION,
+        ]);
+
+        if (
+          granted[PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION] !==
+            PermissionsAndroid.RESULTS.GRANTED &&
+          granted[PermissionsAndroid.PERMISSIONS.ACCESS_COARSE_LOCATION] !==
+            PermissionsAndroid.RESULTS.GRANTED
+        ) {
+          Alert.alert('Permission denied', 'Location permission is required to get your current location.');
           setLoading(false);
           return;
         }
+      } else {
+        // iOS: request authorization
+        if (Geolocation && Geolocation.requestAuthorization) {
+          Geolocation.requestAuthorization();
+        }
       }
-
       Geolocation.getCurrentPosition(
         async (pos) => {
           const { latitude, longitude } = pos.coords;
@@ -91,11 +102,11 @@ const AddressScreen = ({ navigation }) => {
           setLoading(false);
         },
         (err) => {
-          console.log(err);
-          Alert.alert('Error', 'Unable to get location');
+          console.log('Geolocation error:', err);
+          Alert.alert('Location error', err.message || 'Unable to get location');
           setLoading(false);
         },
-        { enableHighAccuracy: true, timeout: 15000 }
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
       );
     } catch (err) {
       console.log(err);
@@ -104,20 +115,9 @@ const AddressScreen = ({ navigation }) => {
   };
 
   const goNext = () => {
-    if (!location) {
-      Alert.alert('Please select your location first');
-      return;
-    }
+  
 
-    navigation.navigate('PropertyImageUpload', {
-      latitude: location.latitude,
-      longitude: location.longitude,
-      street,
-      city,
-      state,
-      postcode,
-      country,
-    });
+    navigation.navigate('PetsStepScreen', );
   };
 
   return (

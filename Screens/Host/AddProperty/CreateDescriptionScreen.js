@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import {
   View,
   Text,
@@ -10,10 +10,12 @@ import {
   ScrollView,
   StatusBar,
 } from 'react-native';
+import { PropertyContext } from '../../../context/PropertyContext';
 
 const CreateDescriptionsScreen = ({ navigation, route }) => {
 
   const prevData = route?.params?.data || {};
+  const { updatePropertyData } = useContext(PropertyContext);
 
   const [listingTitle, setListingTitle] = useState(
     prevData.listingTitle || 'MY PROPERTY 1'
@@ -35,6 +37,9 @@ const CreateDescriptionsScreen = ({ navigation, route }) => {
       return;
     }
 
+    // Save to context
+    updatePropertyData('description', generalDescription.trim());
+
     const finalData = {
       ...prevData,
       listingTitle: listingTitle.trim(),
@@ -46,7 +51,7 @@ const CreateDescriptionsScreen = ({ navigation, route }) => {
       JSON.stringify(finalData, null, 2)
     );
 
-    // ✅ Navigate with clean object
+    
     navigation.navigate('HouseHighlights', {
       data: finalData,
     });

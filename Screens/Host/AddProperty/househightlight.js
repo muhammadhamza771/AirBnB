@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   Alert,
   SafeAreaView,
 } from 'react-native';
+import { PropertyContext } from '../../../context/PropertyContext';
 
 const HIGHLIGHTS = [
   { id: 'peaceful', label: 'Peaceful', icon: '🌿' },
@@ -20,6 +21,7 @@ const HIGHLIGHTS = [
 const HouseHighlights = ({ navigation, route }) => {
   
   const prevData = route?.params?.data || {};
+  const { updatePropertyData } = useContext(PropertyContext);
 
   const [selected, setSelected] = useState([]);
 
@@ -34,6 +36,9 @@ const HouseHighlights = ({ navigation, route }) => {
       Alert.alert('Required', 'Select at least one highlight');
       return;
     }
+
+    // Save to context
+    updatePropertyData('highlights', selected);
 
     // ✅ FINAL DATA (no duplication)
     const finalData = {

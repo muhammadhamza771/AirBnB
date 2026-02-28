@@ -1,5 +1,5 @@
-// AmenitiesScreen.js
-import React, { useState } from 'react';
+
+import React, { useState, useContext } from 'react';
 import {
   View,
   Text,
@@ -12,11 +12,13 @@ import {
   Alert,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
+import { PropertyContext } from '../../../context/PropertyContext';
 
 const AmenitiesScreen = ({ navigation, route }) => {
 
-  // ✅ CORRECT: get previous data
+ 
   const prevData = route?.params?.data || {};
+  const { updatePropertyData } = useContext(PropertyContext);
 
   const [selectedAmenities, setSelectedAmenities] = useState(
     prevData.amenities || []
@@ -35,14 +37,14 @@ const AmenitiesScreen = ({ navigation, route }) => {
     { id: 'workspace', name: 'Workspace', icon: 'desktop-outline' },
     { id: 'fridge', name: 'Refrigerator', icon: 'ice-cream-outline' },
     { id: 'microwave', name: 'Microwave', icon: 'nuclear-outline' },
-    { id: 'elevator', name: 'Elevator', icon: 'business-outline' },
+  
     { id: 'balcony', name: 'Balcony', icon: 'home-outline' },
     { id: 'garden', name: 'Garden', icon: 'leaf-outline' },
     { id: 'security', name: 'Security Camera', icon: 'camera-outline' },
     { id: 'fire', name: 'Fire Extinguisher', icon: 'flame-outline' },
     { id: 'firstaid', name: 'First Aid Kit', icon: 'medkit-outline' },
     { id: 'power', name: 'Power Backup', icon: 'flash-outline' },
-    { id: 'pet', name: 'Pet Friendly', icon: 'paw-outline' },
+   
   ];
 
   const toggleAmenity = (item) => {
@@ -56,6 +58,8 @@ const AmenitiesScreen = ({ navigation, route }) => {
   };
 
   const handleNext = () => {
+    // Save to context
+    updatePropertyData('amenities', selectedAmenities);
     
     const finalData = {
       ...prevData,

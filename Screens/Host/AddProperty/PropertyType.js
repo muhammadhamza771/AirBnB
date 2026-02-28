@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   Alert,
   SafeAreaView,
 } from 'react-native';
+import { PropertyContext } from '../../../context/PropertyContext';
 
 const PROPERTY_TYPES = [
   {
@@ -31,22 +32,25 @@ const PROPERTY_TYPES = [
 
 const PropertyType = ({ navigation, route }) => {
   const [selected, setSelected] = useState(null);
-
   const prevData = route.params || {};
+  const { updatePropertyData } = useContext(PropertyContext);
 
   const handleNext = () => {
-  if (!selected) return;
+    if (!selected) return;
 
-  const dataToSend = {
-    ...prevData,
-    propertyType: {
-      id: selected.id,
-      label: selected.label,
-    },
+    // Save to context
+    updatePropertyData('propertyType', selected.label);
+
+    const dataToSend = {
+      ...prevData,
+      propertyType: {
+        id: selected.id,
+        label: selected.label,
+      },
+    };
+
+    navigation.navigate('GuestCapacity', dataToSend);
   };
-
-  navigation.navigate('GuestCapacity', dataToSend);
-};
 
   return (
     <SafeAreaView style={styles.container}>

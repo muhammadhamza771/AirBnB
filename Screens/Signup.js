@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
-  TouchableOpacity,
   TextInput,
+  TouchableOpacity,
+  StyleSheet,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
+import { signupUser } from '../BackendServices/Apiservices'; // API file
 
 const primaryColor = '#FF385C';
 const textColor = '#222222';
@@ -14,135 +16,147 @@ const subtitleColor = '#717171';
 const borderColor = '#DDDDDD';
 
 const SignupScreen = ({ navigation }) => {
-  const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [formData, setFormData] = useState({
+    username: '',
+    email: '',
+    password: '',
+   
+  });
 
   const [allFieldError, setAllFieldError] = useState('');
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSignup = () => {
+  // Input change handler
+  const handleInputChange = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  // Signup button
+  const handleSignup = async () => {
     setAllFieldError('');
     setEmailError('');
     setPasswordError('');
 
+    const { username, email, password, confirmPassword } = formData;
+
+    // Basic validation
     if (!username || !email || !password || !confirmPassword) {
       setAllFieldError('Please fill all fields');
       return;
     }
 
+    // Gmail validation
     const emailRegex = /^[a-zA-Z0-9._]+@gmail\.com$/;
     if (!emailRegex.test(email)) {
       setEmailError('Please enter a valid Gmail address');
       return;
     }
 
+    // Password match
     if (password !== confirmPassword) {
       setPasswordError('Passwords do not match');
       return;
     }
 
-    Alert.alert('Success', 'Account created successfully');
-  
-  navigation.replace('GuestTabs');
-};
+    try {
+      setLoading(true);
 
-  
+const response = await signupUser({
+  fullname: formData.username,
+  email: formData.email,
+  password: formData.password,   
+});
+      Alert.alert('Success', response.message || 'Account created successfully');
+
+      navigation.replace('Login');
+    } catch (error) {
+      console.log('Full Error:', error);
+
+      if (error.response) {
+        // Backend error
+        Alert.alert(
+          'Signup Failed',
+          error.response.data?.message || 'Server error'
+        );
+      } else if (error.request) {
+        // Network error
+        Alert.alert(
+          'Network Error',
+          'Cannot connect to server. Check IP & WiFi.'
+        );
+      } else {
+        Alert.alert('Error', error.message);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
-      <View style={styles.card}>
+      <Text style={styles.title}>Create Account</Text>
 
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.appName}>Airbnb</Text>
-          <Text style={styles.tagline}>
-            Book unique homes & experiences
-          </Text>
-        </View>
+      {allFieldError ? <Text style={styles.error}>{allFieldError}</Text> : null}
 
-        <Text style={styles.title}>Create your account</Text>
+      {/* Username */}
+      <TextInput
+        style={styles.input}
+        placeholder="Full Name"
+        value={formData.username}
+        onChangeText={text => handleInputChange('username', text)}
+      />
 
-        {allFieldError ? (
-          <Text style={styles.error}>{allFieldError}</Text>
-        ) : null}
+      {/* Email */}
+      <TextInput
+        style={styles.input}
+        placeholder="Email"
+        keyboardType="email-address"
+        autoCapitalize="none"
+        value={formData.email}
+        onChangeText={text => handleInputChange('email', text)}
+      />
+      {emailError ? <Text style={styles.error}>{emailError}</Text> : null}
 
-        {/* Username */}
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            placeholder="Fullname"
-            value={username}
-            onChangeText={setUsername}
-          />
-        </View>
+      {/* Password */}
+      <TextInput
+        style={styles.input}
+        placeholder="Password"
+        secureTextEntry
+        value={formData.password}
+        onChangeText={text => handleInputChange('password', text)}
+      />
 
-        {/* Email */}
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            placeholder="Email address"
-            keyboardType="email-address"
-            autoCapitalize="none"
-            value={email}
-            onChangeText={setEmail}
-          />
-        </View>
-        {emailError ? <Text style={styles.error}>{emailError}</Text> : null}
+      {/* Confirm Password */}
+      <TextInput
+        style={styles.input}
+        placeholder="Confirm Password"
+        secureTextEntry
+        value={formData.confirmPassword}
+        onChangeText={text => handleInputChange('confirmPassword', text)}
+      />
+      {passwordError ? <Text style={styles.error}>{passwordError}</Text> : null}
 
-        {/* Password */}
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            placeholder="Password"
-            secureTextEntry
-            value={password}
-            onChangeText={setPassword}
-          />
-        </View>
+      {/* Signup Button */}
+      <TouchableOpacity
+        style={styles.button}
+        onPress={handleSignup}
+        disabled={loading}
+      >
+        {loading ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={styles.buttonText}>Sign Up</Text>
+        )}
+      </TouchableOpacity>
 
-        {/* Confirm Password */}
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            placeholder="Confirm password"
-            secureTextEntry
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-          />
-        </View>
-        {passwordError ? (
-          <Text style={styles.error}>{passwordError}</Text>
-        ) : null}
-
-        {/* Button */}
-        <TouchableOpacity
-          style={styles.primaryButton}
-          onPress={handleSignup}
-        >
-          <Text style={styles.primaryButtonText}>Create account</Text>
-        </TouchableOpacity>
-
-        {/* Terms */}
-        <Text style={styles.terms}>
-          By signing up, you agree to our{' '}
-          <Text style={styles.link}>Terms</Text> &{' '}
-          <Text style={styles.link}>Privacy Policy</Text>
+      {/* Login link */}
+      <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+        <Text style={styles.loginText}>
+          Already have an account? <Text style={styles.loginBold}>Login</Text>
         </Text>
-
-        <View style={styles.divider} />
-
-        {/* Login */}
-        <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-          <Text style={styles.loginText}>
-            Already have an account?{' '}
-            <Text style={styles.loginBold}>Log in</Text>
-          </Text>
-        </TouchableOpacity>
-
-      </View>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -152,83 +166,45 @@ export default SignupScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: primaryColor,
     justifyContent: 'center',
-    paddingHorizontal: 24,
-  },
-  card: {
-    backgroundColor: '#FFF',
-    borderRadius: 32,
     padding: 24,
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  appName: {
-    fontSize: 34,
-    fontWeight: '900',
-    color: primaryColor,
-  },
-  tagline: {
-    fontSize: 14,
-    color: subtitleColor,
-    marginTop: 6,
+    backgroundColor: '#fff',
   },
   title: {
-    fontSize: 22,
-    fontWeight: '700',
-    textAlign: 'center',
+    fontSize: 28,
+    fontWeight: 'bold',
     marginBottom: 20,
-    color: textColor,
-  },
-  inputContainer: {
-    borderWidth: 1,
-    borderColor: borderColor,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    marginBottom: 14,
+    textAlign: 'center',
   },
   input: {
-    height: 52,
+    borderWidth: 1,
+    borderColor: borderColor,
+    padding: 14,
+    borderRadius: 12,
+    marginBottom: 14,
     fontSize: 16,
     color: textColor,
   },
   error: {
     color: '#E53935',
-    fontSize: 13,
     marginBottom: 10,
+    fontSize: 13,
   },
-  primaryButton: {
+  button: {
     backgroundColor: primaryColor,
-    paddingVertical: 16,
+    padding: 16,
     borderRadius: 12,
     alignItems: 'center',
     marginTop: 10,
   },
-  primaryButtonText: {
+  buttonText: {
     color: '#FFF',
+    fontWeight: '700',
     fontSize: 16,
-    fontWeight: '700',
-  },
-  terms: {
-    fontSize: 12,
-    color: subtitleColor,
-    textAlign: 'center',
-    marginTop: 16,
-  },
-  link: {
-    color: primaryColor,
-    fontWeight: '700',
-  },
-  divider: {
-    height: 1,
-    backgroundColor: '#E5E7EB',
-    marginVertical: 20,
   },
   loginText: {
+    marginTop: 20,
     textAlign: 'center',
-    fontSize: 15,
     color: subtitleColor,
   },
   loginBold: {

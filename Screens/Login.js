@@ -1,35 +1,95 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   TextInput,
+  ActivityIndicator,
+  Alert
 } from 'react-native';
+import { AuthContext } from '../context/AuthContext';
+import { useNavigation } from '@react-navigation/native';
+import { loginUser } from '../BackendServices/Apiservices';
 
 const primaryColor = '#FF385C';
 const textColor = '#222222';
 const subtitleColor = '#717171';
 const borderColor = '#DDDDDD';
 
-const LoginScreen = ({ navigation }) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [errorMessage, setErrorMessage] = useState('');
+const LoginScreen = () => {
+  const navigation = useNavigation();
+  const { login } = useContext(AuthContext);
 
-  const handleLogin = () => {
-    if (!email || !password) {
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+  });
+
+  const [errorMessage, setErrorMessage] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleInputChange = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleLogin = async () => {
+    // Validation
+    if (!formData.email || !formData.password) {
       setErrorMessage('Please enter email and password');
       return;
     }
 
-    // clear error
+    // Email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      setErrorMessage('Please enter a valid email address');
+      return;
+    }
+
     setErrorMessage('');
+    setLoading(true);
 
-    // TODO: API login here later
+    try {
+      const response = await loginUser({
+        email: formData.email,
+        password: formData.password,
+      });
 
-    
-    navigation.replace('GuestTab');
+      console.log('Login Response:', response);
+
+      // Check if login successful
+      if (response && response.success && response.user) {
+        // Call context login with full response
+        login(response);
+        
+        // Navigate to GuestTab (default)
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'GuestTab' }],
+        });
+      } else {
+        setErrorMessage(response.message || 'Login failed');
+      }
+
+    } catch (error) {
+      console.log('Login Error:', error);
+      
+      const errorMsg = 
+        error.response?.data?.message ||
+        error.message ||
+        'Login failed. Please check your credentials and try again.';
+      
+      setErrorMessage(errorMsg);
+      
+      Alert.alert(
+        'Login Failed',
+        errorMsg,
+        [{ text: 'OK' }]
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -45,11 +105,8 @@ const LoginScreen = ({ navigation }) => {
       {/* Card */}
       <View style={styles.card}>
         <Text style={styles.title}>Login to your account</Text>
-        <Text style={styles.subtitle}>
-          Enter your credentials to continue
-        </Text>
+        <Text style={styles.subtitle}>Enter your credentials to continue</Text>
 
-        {/* Email */}
         <View style={styles.inputContainer}>
           <TextInput
             style={styles.input}
@@ -57,51 +114,61 @@ const LoginScreen = ({ navigation }) => {
             placeholderTextColor="#9CA3AF"
             keyboardType="email-address"
             autoCapitalize="none"
-            value={email}
-            onChangeText={setEmail}
+            autoCorrect={false}
+            value={formData.email}
+            onChangeText={(text) => handleInputChange('email', text)}
+            editable={!loading}
           />
         </View>
 
-        {/* Password */}
         <View style={styles.inputContainer}>
           <TextInput
             style={styles.input}
             placeholder="Password"
             placeholderTextColor="#9CA3AF"
             secureTextEntry
-            value={password}
-            onChangeText={setPassword}
+            value={formData.password}
+            onChangeText={(text) => handleInputChange('password', text)}
+            editable={!loading}
           />
         </View>
 
-        {/* Forgot */}
-        <TouchableOpacity style={styles.forgotPassword}>
+        <TouchableOpacity 
+          style={styles.forgotPassword}
+          onPress={() => {
+            Alert.alert('Info', 'Forgot password feature coming soon!');
+          }}
+          disabled={loading}
+        >
           <Text style={styles.forgotPasswordText}>Forgot password?</Text>
         </TouchableOpacity>
 
-        {/* Login Button */}
         <TouchableOpacity
-          style={styles.loginButton}
+          style={[styles.loginButton, loading && styles.loginButtonDisabled]}
           onPress={handleLogin}
+          disabled={loading}
         >
-          <Text style={styles.loginButtonText}>Log in</Text>
+          {loading ? (
+            <ActivityIndicator color="#FFF" size="small" />
+          ) : (
+            <Text style={styles.loginButtonText}>Log in</Text>
+          )}
         </TouchableOpacity>
 
-        {/* Error */}
         {errorMessage ? (
-          <Text style={styles.error}>{errorMessage}</Text>
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorIcon}>⚠️</Text>
+            <Text style={styles.errorText}>{errorMessage}</Text>
+          </View>
         ) : null}
 
-        {/* OR */}
         <Text style={styles.orText}>OR</Text>
 
-        {/* Signup */}
         <View style={styles.signUpContainer}>
-          <Text style={styles.signUpPrompt}>
-            Don’t have an account?
-          </Text>
-          <TouchableOpacity
+          <Text style={styles.signUpPrompt}>Don't have an account?</Text>
+          <TouchableOpacity 
             onPress={() => navigation.navigate('Signup')}
+            disabled={loading}
           >
             <Text style={styles.signupText}>Sign up</Text>
           </TouchableOpacity>
@@ -112,8 +179,6 @@ const LoginScreen = ({ navigation }) => {
 };
 
 export default LoginScreen;
-
-
 
 const styles = StyleSheet.create({
   container: {
@@ -158,10 +223,6 @@ const styles = StyleSheet.create({
     color: subtitleColor,
     marginBottom: 24,
   },
-
-
-
- 
   inputContainer: {
     backgroundColor: '#FFF',
     borderWidth: 1,
@@ -188,17 +249,34 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 10,
+    minHeight: 55,
+  },
+  loginButtonDisabled: {
+    opacity: 0.6,
   },
   loginButtonText: {
     color: '#FFF',
     fontSize: 16,
     fontWeight: '700',
   },
-  error: {
-    color: '#E53935',
-    textAlign: 'center',
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEE',
+    padding: 12,
+    borderRadius: 8,
     marginTop: 10,
+  },
+  errorIcon: {
+    fontSize: 16,
+    marginRight: 8,
+  },
+  errorText: {
+    color: '#E53935',
+    flex: 1,
+    fontSize: 14,
   },
   orText: {
     textAlign: 'center',

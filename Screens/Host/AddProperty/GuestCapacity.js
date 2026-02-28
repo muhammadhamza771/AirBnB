@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Alert,
 } from 'react-native';
+import { PropertyContext } from '../../../context/PropertyContext';
 
 const GuestCounter = ({ label, count, setCount, subtitle }) => (
   <View style={styles.counterRow}>
@@ -40,23 +41,25 @@ const GuestCapacity = ({ navigation, route }) => {
   const [adults, setAdults] = useState(2);
   const [children, setChildren] = useState(1);
   const [infants, setInfants] = useState(0);
-
-
   const prevData = route.params || {};
+  const { updatePropertyData } = useContext(PropertyContext);
 
   const handleNext = () => {
-  const finalData = {
-    ...prevData,
-    guests: {
-      adults,
-      children,
-      infants,
-    },
-  };
+    // Save to context
+    updatePropertyData('guestCapacity', adults + children + infants);
 
-  Alert.alert(
-    'Complete Listing Data',
-    `
+    const finalData = {
+      ...prevData,
+      guests: {
+        adults,
+        children,
+        infants,
+      },
+    };
+
+    Alert.alert(
+      'Complete Listing Data',
+      `
 Property Name:
 ${finalData.propertyName?.label}
 
@@ -68,21 +71,21 @@ Adults: ${finalData.guests.adults}
 Children: ${finalData.guests.children}
 Infants: ${finalData.guests.infants}
     `,
-    [
-      {
-        text: 'OK',
-        onPress: () => {
-         navigation.navigate('RoomsScreen', { data: finalData }); 
+      [
+        {
+          text: 'OK',
+          onPress: () => {
+            navigation.navigate('RoomsScreen', { data: finalData }); 
+          },
         },
-      },
-    ]
-  );
-};
+      ]
+    );
+  };
 
 
   return (
     <View style={styles.container}>
-      <Text style={styles.step}>STEP 4 OF 11</Text>
+     
 
       <Text style={styles.title}>
         Share some basics about your place

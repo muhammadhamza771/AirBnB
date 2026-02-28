@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import {
   View,
   Text,
@@ -6,9 +6,11 @@ import {
   StyleSheet,
   SafeAreaView,
 } from 'react-native';
+import { PropertyContext } from '../../../context/PropertyContext';
 
 const PricingStrategiesScreen = ({ navigation, route }) => {
   const prevData = route?.params?.data || {};
+  const { updatePropertyData } = useContext(PropertyContext);
 
   const [weekly, setWeekly] = useState(2);
   const [monthly, setMonthly] = useState(3);
@@ -23,6 +25,9 @@ const PricingStrategiesScreen = ({ navigation, route }) => {
   };
 
   const handleNext = () => {
+    // Save to context
+    updatePropertyData('discounts', [{ weekly, monthly, earlyBird }]);
+
     const dataToPass = {
       ...prevData,
       pricingStrategies: {
