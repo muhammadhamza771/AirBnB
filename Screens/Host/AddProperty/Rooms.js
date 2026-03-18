@@ -3,163 +3,257 @@ import {
   View,
   Text,
   TouchableOpacity,
-  FlatList,
   Alert,
   SafeAreaView,
   StatusBar,
   StyleSheet,
   Switch,
+  Dimensions,
+  ScrollView,
+  Image,
 } from 'react-native';
+import { launchImageLibrary } from 'react-native-image-picker';
 import { PropertyContext } from '../../../context/PropertyContext';
 
+const { width } = Dimensions.get('window');
+
+// Simple bed types
 const BED_TYPES = ['Queen Bed', 'Single Bed', 'Double Bed', 'Mattress'];
+
+// Simple washroom types
 const WASHROOM_TYPES = ['Attached', 'Shared'];
 
-/* ---------------- ROOM CARD ---------------- */
+// Room Card Component
+const RoomCard = ({ room, index, updateRoom }) => {
 
-const RoomCard = ({ room, index, updateRoom }) => (
-  <View style={styles.card}>
-    <View style={styles.cardHeader}>
-      <View style={styles.roomNumberBadge}>
-        <Text style={styles.roomNumberText}>Room {index + 1}</Text>
+  // Function to pick image from gallery
+  const pickImage = (imageType) => {
+    const options = {
+      mediaType: 'photo',
+      quality: 0.8,
+      includeBase64: false, // Don't convert to base64 here
+    };
+
+    launchImageLibrary(options, (response) => {
+      if (response.didCancel) {
+        console.log('User cancelled image picker');
+      } else if (response.error) {
+        console.log('ImagePicker Error: ', response.error);
+      } else if (response.assets && response.assets.length > 0) {
+        const imageUri = response.assets[0].uri;
+        console.log(`📸 Image selected for ${imageType}:`, imageUri);
+        
+        // Save image in room data
+        if (imageType === 'room') {
+          updateRoom(index, 'roomImage', imageUri);
+        } else {
+          updateRoom(index, 'bathroomImage', imageUri);
+        }
+      }
+    });
+  };
+
+  return (
+    <View style={styles.card}>
+
+      {/* Room Number Badge */}
+      <View style={styles.badge}>
+        <Text style={styles.badgeText}>Room {index + 1}</Text>
       </View>
-    </View>
 
-    {/* Washroom Selector */}
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Washroom Type</Text>
-      <View style={styles.optionRow}>
-        {WASHROOM_TYPES.map(type => (
-          <TouchableOpacity
-            key={type}
-            style={[
-              styles.optionButton,
-              room.washroom === type && styles.optionButtonActive,
-            ]}
-            onPress={() => updateRoom(index, 'washroom', type)}
-          >
-            <Text
+      {/* WASHROOM TYPE */}
+      <View style={styles.section}>
+        <Text style={styles.label}>Washroom Type</Text>
+        <View style={styles.row}>
+          {WASHROOM_TYPES.map(type => (
+            <TouchableOpacity
+              key={type}
               style={[
-                styles.optionText,
-                room.washroom === type && styles.optionTextActive,
+                styles.optionButton,
+                room.washroom === type && styles.optionButtonActive,
               ]}
+              onPress={() => updateRoom(index, 'washroom', type)}
             >
-              {type}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-    </View>
-
-    {/* Lock Selector */}
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Does room have a lock?</Text>
-      <View style={styles.optionRow}>
-        <TouchableOpacity
-          style={[
-            styles.optionButton,
-            room.hasLock === true && styles.optionButtonActive,
-          ]}
-          onPress={() => updateRoom(index, 'hasLock', true)}
-        >
-          <Text
-            style={[
-              styles.optionText,
-              room.hasLock === true && styles.optionTextActive,
-            ]}
-          >
-            Yes
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[
-            styles.optionButton,
-            room.hasLock === false && styles.optionButtonActive,
-          ]}
-          onPress={() => updateRoom(index, 'hasLock', false)}
-        >
-          <Text
-            style={[
-              styles.optionText,
-              room.hasLock === false && styles.optionTextActive,
-            ]}
-          >
-            No
-          </Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-
-    {/* Beds Section */}
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Beds</Text>
-
-      {BED_TYPES.map(type => {
-        if (type === 'Mattress' && !room.showMattress) return null;
-
-        return (
-          <View key={type} style={styles.counterRow}>
-            <Text style={styles.bedTypeLabel}>{type}</Text>
-
-            <View style={styles.counterControls}>
-              <TouchableOpacity
-                style={styles.counterButton}
-                onPress={() =>
-                  updateRoom(index, type, Math.max(0, (room.beds[type] || 0) - 1))
-                }
+              <Text
+                style={[
+                  styles.optionText,
+                  room.washroom === type && styles.optionTextActive,
+                ]}
               >
-                <Text style={styles.counterButtonText}>-</Text>
-              </TouchableOpacity>
+                {type}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
 
-              <View style={styles.counterDisplay}>
-                <Text style={styles.counterText}>
-                  {room.beds[type] || 0}
-                </Text>
+      {/* ROOM LOCK */}
+      <View style={styles.section}>
+        <Text style={styles.label}>Room Lock</Text>
+        <View style={styles.row}>
+          {['Yes', 'No'].map(val => (
+            <TouchableOpacity
+              key={val}
+              style={[
+                styles.optionButton,
+                room.hasLock === (val === 'Yes') && styles.optionButtonActive,
+              ]}
+              onPress={() => updateRoom(index, 'hasLock', val === 'Yes')}
+            >
+              <Text
+                style={[
+                  styles.optionText,
+                  room.hasLock === (val === 'Yes') && styles.optionTextActive,
+                ]}
+              >
+                {val}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
+      {/* BEDS COUNT */}
+      <View style={styles.section}>
+        <Text style={styles.label}>Beds</Text>
+
+        {BED_TYPES.map(type => {
+          // Hide mattress if not showing
+          if (type === 'Mattress' && !room.showMattress) return null;
+
+          return (
+            <View key={type} style={styles.bedRow}>
+              <Text style={styles.bedName}>{type}</Text>
+
+              <View style={styles.counter}>
+                {/* Minus Button */}
+                <TouchableOpacity
+                  style={styles.counterButton}
+                  onPress={() => {
+                    const currentCount = room.beds[type] || 0;
+                    if (currentCount > 0) {
+                      updateRoom(index, type, currentCount - 1);
+                    }
+                  }}
+                >
+                  <Text style={styles.counterText}>-</Text>
+                </TouchableOpacity>
+
+                {/* Count Display */}
+                <Text style={styles.count}>{room.beds[type] || 0}</Text>
+
+                {/* Plus Button */}
+                <TouchableOpacity
+                  style={styles.counterButton}
+                  onPress={() => {
+                    const currentCount = room.beds[type] || 0;
+                    updateRoom(index, type, currentCount + 1);
+                  }}
+                >
+                  <Text style={styles.counterText}>+</Text>
+                </TouchableOpacity>
               </View>
-
-              <TouchableOpacity
-                style={styles.counterButton}
-                onPress={() =>
-                  updateRoom(index, type, (room.beds[type] || 0) + 1)
-                }
-              >
-                <Text style={styles.counterButtonText}>+</Text>
-              </TouchableOpacity>
             </View>
+          );
+        })}
+      </View>
+
+      {/* SHOW MATTRESS TOGGLE */}
+      <View style={styles.toggleRow}>
+        <Text style={styles.label}>Show Mattress</Text>
+        <Switch
+          value={room.showMattress}
+          onValueChange={(val) => updateRoom(index, 'showMattress', val)}
+          trackColor={{ false: '#ccc', true: '#ff385c' }}
+        />
+      </View>
+
+      {/* IMAGES SECTION */}
+      <View style={styles.imagesSection}>
+        <Text style={styles.label}>Room Photos</Text>
+        
+        <View style={styles.imageRow}>
+
+          {/* Room Image */}
+          <View style={styles.imageBox}>
+            <TouchableOpacity 
+              style={styles.imageContainer}
+              onPress={() => pickImage('room')}
+            >
+              {room.roomImage ? (
+                <Image source={{ uri: room.roomImage }} style={styles.image} />
+              ) : (
+                <View style={styles.placeholder}>
+                  <Text style={styles.placeholderIcon}>🛏️</Text>
+                  <Text style={styles.placeholderText}>Add Room Photo</Text>
+                </View>
+              )}
+            </TouchableOpacity>
           </View>
-        );
-      })}
+
+          {/* Bathroom Image */}
+          <View style={styles.imageBox}>
+            <TouchableOpacity 
+              style={styles.imageContainer}
+              onPress={() => pickImage('bathroom')}
+            >
+              {room.bathroomImage ? (
+                <Image source={{ uri: room.bathroomImage }} style={styles.image} />
+              ) : (
+                <View style={styles.placeholder}>
+                  <Text style={styles.placeholderIcon}>🚿</Text>
+                  <Text style={styles.placeholderText}>Add Bathroom Photo</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
+
+        </View>
+      </View>
+
     </View>
+  );
+};
 
-    {/* Mattress Toggle */}
-    <View style={[styles.section, styles.toggleRow]}>
-      <Text style={styles.sectionTitle}>Show Mattress?</Text>
-      <Switch
-        value={room.showMattress}
-        onValueChange={value => updateRoom(index, 'showMattress', value)}
-        trackColor={{ false: '#ccc', true: '#ff385c' }}
-        thumbColor="#fff"
-      />
-    </View>
-  </View>
-);
+// Main Screen
+const RoomsScreen = ({ navigation }) => {
+  
+  const { updatePropertyData, propertyData } = useContext(PropertyContext);
 
-/* ---------------- MAIN SCREEN ---------------- */
-
-const RoomsScreen = ({ route, navigation }) => {
-  const prevData = route?.params?.data || {};
-
-  const [rooms, setRooms] = useState([
-    {
+  // Initial room data from context if exists
+  const [rooms, setRooms] = useState(() => {
+    // Agar context mein already rooms hain to unhe load karo
+    if (propertyData.rooms && propertyData.rooms.length > 0) {
+      // Convert backend format to local format
+      return propertyData.rooms.map(room => ({
+        washroom: room.bathroomType || 'Attached',
+        beds: (room.beds || []).reduce((acc, bed) => {
+          const bedType = bed.type === 'Single' ? 'Single Bed' : 
+                         bed.type === 'Queen' ? 'Queen Bed' :
+                         bed.type === 'Double' ? 'Double Bed' : 'Mattress';
+          acc[bedType] = bed.count;
+          return acc;
+        }, {}),
+        showMattress: room.extraMattress?.allowed || false,
+        hasLock: room.hasLock || false,
+        roomImage: room.images?.room || null,
+        bathroomImage: room.images?.bathroom || null,
+      }));
+    }
+    
+    // Default room
+    return [{
       washroom: 'Attached',
       beds: {},
       showMattress: false,
       hasLock: false,
-    },
-  ]);
+      roomImage: null,
+      bathroomImage: null,
+    }];
+  });
 
-  const addRoom = () =>
+  // Add new room
+  const addRoom = () => {
     setRooms([
       ...rooms,
       {
@@ -167,255 +261,442 @@ const RoomsScreen = ({ route, navigation }) => {
         beds: {},
         showMattress: false,
         hasLock: false,
+        roomImage: null,
+        bathroomImage: null,
       },
     ]);
+  };
 
+  // Remove last room
   const removeRoom = () => {
     if (rooms.length > 1) {
       setRooms(rooms.slice(0, -1));
-    }
-  };
-
-  const updateRoom = (index, key, value) => {
-    const newRooms = [...rooms];
-
-    if (BED_TYPES.includes(key)) {
-      newRooms[index].beds[key] = value;
     } else {
-      newRooms[index][key] = value;
+      Alert.alert('Cannot Remove', 'At least one room is required');
     }
-
-    setRooms(newRooms);
   };
 
-  const { updatePropertyData } = useContext(PropertyContext);
+  // Update room data
+  const updateRoom = (index, key, value) => {
+    const updatedRooms = [...rooms];
+    
+    // Check if key is bed type
+    if (BED_TYPES.includes(key)) {
+      if (!updatedRooms[index].beds) {
+        updatedRooms[index].beds = {};
+      }
+      updatedRooms[index].beds[key] = value;
+    } else {
+      updatedRooms[index][key] = value;
+    }
+    
+    setRooms(updatedRooms);
+    
+    // Debug log
+    console.log(`🔄 Room ${index + 1} updated:`, {
+      [key]: value,
+      roomImage: updatedRooms[index].roomImage ? '✅' : '❌',
+      bathroomImage: updatedRooms[index].bathroomImage ? '✅' : '❌'
+    });
+  };
 
+  // Save and go next
   const handleNext = () => {
-    updatePropertyData('rooms', rooms);
-    const finalData = { ...prevData, rooms };
-    Alert.alert('Property Data', JSON.stringify(finalData, null, 2));
-    navigation.navigate('CreateDescriptionScreen', { data: finalData });
+    // Validate at least one bed selected
+    const hasBeds = rooms.some(room => 
+      Object.values(room.beds).some(count => count > 0)
+    );
+    
+    if (!hasBeds) {
+      Alert.alert('Error', 'Please add at least one bed in any room');
+      return;
+    }
+
+    // Format rooms for backend
+    const formattedRooms = rooms.map((room, index) => {
+      console.log(`🖼️ Processing Room ${index + 1} images:`, {
+        roomImage: room.roomImage || 'No image',
+        bathroomImage: room.bathroomImage || 'No image'
+      });
+
+      // Convert beds object → array format
+      const bedsArray = Object.keys(room.beds || {})
+        .filter(type => room.beds[type] > 0)
+        .map(type => ({
+          type: type.replace(' Bed', '').replace('Mattress', 'Single'),
+          count: room.beds[type],
+          image: "" // Bed images not needed in this screen
+        }));
+
+      // Return formatted room with images
+      return {
+        id: Date.now() + index,
+        name: `Room ${index + 1}`,
+        type: "Bedroom",
+        bathroomType: room.washroom,
+        beds: bedsArray,
+        images: {
+          room: room.roomImage || "", // Room image URI
+          bathroom: room.bathroomImage || "", // Bathroom image URI
+        },
+        extraMattress: {
+          allowed: room.showMattress,
+          count: room.beds?.Mattress || 0,
+        },
+        hasLock: room.hasLock,
+      };
+    });
+
+    // Debug log before saving
+    console.log('📦 Saving to context:', formattedRooms.map(room => ({
+      name: room.name,
+      roomImage: room.images.room ? '✅' : '❌',
+      bathroomImage: room.images.bathroom ? '✅' : '❌'
+    })));
+
+    // ✅ Save backend-compatible structure with images
+    updatePropertyData('rooms', formattedRooms);
+
+    // Navigate to next screen
+    navigation.navigate('CreateDescriptionScreen');
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
-      <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" />
+
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Rooms Details</Text>
+      
+      </View>
+
+      <ScrollView showsVerticalScrollIndicator={false}>
 
         {/* Room Counter */}
-        <View style={styles.counterSection}>
-          <Text style={styles.counterLabel}>Number of Rooms</Text>
-
-          <View style={styles.counterContainer}>
-            <TouchableOpacity
-              style={styles.counterActionButton}
-              onPress={removeRoom}
-            >
-              <Text style={styles.counterActionText}>−</Text>
+        <View style={styles.counterCard}>
+          <Text style={styles.counterLabel}>Total Rooms</Text>
+          
+          <View style={styles.counterControls}>
+            <TouchableOpacity style={styles.counterBtn} onPress={removeRoom}>
+              <Text style={styles.counterBtnText}>-</Text>
             </TouchableOpacity>
 
-            <View style={styles.roomCountContainer}>
-              <Text style={styles.roomCount}>{rooms.length}</Text>
-              <Text style={styles.roomLabel}>ROOMS</Text>
-            </View>
+            <Text style={styles.roomCount}>{rooms.length}</Text>
 
-            <TouchableOpacity
-              style={styles.counterActionButton}
-              onPress={addRoom}
-            >
-              <Text style={styles.counterActionText}>+</Text>
+            <TouchableOpacity style={styles.counterBtn} onPress={addRoom}>
+              <Text style={styles.counterBtnText}>+</Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* Rooms List */}
-        <FlatList
-          data={rooms}
-          renderItem={({ item, index }) => (
-            <RoomCard
-              room={item}
-              index={index}
-              updateRoom={updateRoom}
-            />
-          )}
-          keyExtractor={(_, i) => `room-${i}`}
-          contentContainerStyle={{ padding: 16 }}
-        />
+        {/* All Rooms */}
+        {rooms.map((room, index) => (
+          <RoomCard
+            key={index}
+            room={room}
+            index={index}
+            updateRoom={updateRoom}
+          />
+        ))}
 
-        {/* Buttons */}
-        <View style={styles.buttonRow}>
-          <TouchableOpacity
-            style={styles.rowButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Text style={styles.nextButtonText}>Back</Text>
-          </TouchableOpacity>
+        {/* Extra Space */}
+        <View style={{ height: 100 }} />
+      </ScrollView>
 
-          <TouchableOpacity
-            style={styles.rowButton}
-            onPress={handleNext}
-          >
-            <Text style={styles.nextButtonText}>Next</Text>
-          </TouchableOpacity>
-        </View>
+      {/* Bottom Buttons */}
+      <View style={styles.bottomBar}>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Text style={styles.backText}>Back</Text>
+        </TouchableOpacity>
 
+        <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
+          <Text style={styles.nextText}>Next</Text>
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
 };
 
-export default RoomsScreen;
-
-/* ---------------- STYLES ---------------- */
-
+// Styles
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#fff' },
-  container: { flex: 1, backgroundColor: '#f8f9fa' },
+  container: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+  },
 
-  counterSection: {
+  // ===== HEADER =====
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    backgroundColor: '#FF385C',
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 6,
+  },
+  backIcon: { marginRight: 12 },
+  headerTextContainer: { flex: 1 },
+  headerTitle: { fontSize: 20, fontWeight: '700', color: '#fff' ,textAlign:'center'},
+  headerSubtitle: { fontSize: 14, color: '#FFDDE0', marginTop: 2 },
+
+  // Counter Card
+  counterCard: {
     backgroundColor: '#fff',
+    margin: 15,
     padding: 20,
-    marginBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e9ecef',
+    borderRadius: 12,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 2,
   },
 
   counterLabel: {
     fontSize: 16,
     fontWeight: '600',
-    marginBottom: 16,
+    marginBottom: 15,
+    color: '#666',
   },
 
-  counterContainer: {
+  counterControls: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'center',
   },
 
-  counterActionButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  counterBtn: {
     backgroundColor: '#ff385c',
+    width: 45,
+    height: 45,
+    borderRadius: 23,
     justifyContent: 'center',
     alignItems: 'center',
   },
 
-  counterActionText: {
-    fontSize: 24,
+  counterBtnText: {
     color: '#fff',
+    fontSize: 24,
+    fontWeight: 'bold',
   },
 
-  roomCountContainer: { alignItems: 'center' },
+  roomCount: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    marginHorizontal: 25,
+    color: '#333',
+  },
 
-  roomCount: { fontSize: 28, fontWeight: '700' },
-
-  roomLabel: { fontSize: 12, color: '#6c757d' },
-
+  // Room Card
   card: {
     backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
-    elevation: 3,
+    margin: 15,
+    marginTop: 5,
+    padding: 18,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 2,
   },
 
-  cardHeader: { marginBottom: 15 },
-
-  roomNumberBadge: {
+  badge: {
     backgroundColor: '#ff385c',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    padding: 8,
     borderRadius: 20,
+    alignSelf: 'flex-start',
+    marginBottom: 15,
   },
 
-  roomNumberText: { color: '#fff', fontWeight: '600' },
+  badgeText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 14,
+  },
 
-  section: { marginBottom: 20 },
+  // Common Section
+  section: {
+    marginBottom: 20,
+  },
 
-  sectionTitle: {
-    fontSize: 16,
+  label: {
+    fontSize: 15,
     fontWeight: '600',
     marginBottom: 10,
+    color: '#555',
   },
 
-  optionRow: {
+  row: {
     flexDirection: 'row',
-    gap: 12,
+    justifyContent: 'space-between',
   },
 
   optionButton: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 10,
+    padding: 12,
     borderWidth: 1,
     borderColor: '#ddd',
+    borderRadius: 8,
+    marginHorizontal: 5,
     alignItems: 'center',
   },
 
   optionButtonActive: {
-    backgroundColor: '#fff0f3',
     borderColor: '#ff385c',
+    backgroundColor: '#fff0f3',
   },
 
-  optionText: { color: '#555' },
+  optionText: {
+    color: '#666',
+    fontSize: 14,
+  },
 
   optionTextActive: {
     color: '#ff385c',
     fontWeight: '600',
   },
 
-  toggleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-
-  counterRow: {
+  // Bed Row
+  bedRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 12,
   },
 
-  bedTypeLabel: { fontSize: 15 },
+  bedName: {
+    fontSize: 14,
+    color: '#555',
+  },
 
-  counterControls: { flexDirection: 'row', alignItems: 'center' },
+  counter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
 
   counterButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
     backgroundColor: '#f1f1f1',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
   },
 
-  counterButtonText: { fontSize: 18 },
-
-  counterDisplay: {
-    width: 40,
-    alignItems: 'center',
+  counterText: {
+    fontSize: 18,
+    color: '#333',
   },
 
-  counterText: { fontWeight: '600' },
+  count: {
+    marginHorizontal: 12,
+    fontSize: 16,
+    fontWeight: '600',
+    minWidth: 25,
+    textAlign: 'center',
+  },
 
-  buttonRow: {
+  toggleRow: {
     flexDirection: 'row',
-    margin: 16,
-  },
-
-  rowButton: {
-    flex: 1,
-    backgroundColor: '#ff385c',
-    padding: 16,
-    borderRadius: 12,
+    justifyContent: 'space-between',
     alignItems: 'center',
-    marginHorizontal: 5,
+    marginBottom: 20,
+    paddingTop: 5,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
   },
 
-  nextButtonText: {
+  // Images Section
+  imagesSection: {
+    marginTop: 5,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+    paddingTop: 15,
+  },
+
+  imageRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+
+  imageBox: {
+    width: '48%',
+  },
+
+  imageContainer: {
+    width: '100%',
+    height: 120,
+    borderRadius: 8,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+
+  image: {
+    width: '100%',
+    height: '100%',
+  },
+
+  placeholder: {
+    flex: 1,
+    backgroundColor: '#f9f9f9',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  placeholderIcon: {
+    fontSize: 24,
+    marginBottom: 5,
+  },
+
+  placeholderText: {
+    fontSize: 11,
+    color: '#999',
+    textAlign: 'center',
+  },
+
+  // Bottom Bar
+  bottomBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    padding: 15,
+    backgroundColor: '#fff',
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+  },
+
+  backButton: {
+    padding: 15,
+  },
+
+  backText: {
+    color: '#666',
+    fontWeight: '600',
+    fontSize: 16,
+  },
+
+  nextButton: {
+    backgroundColor: '#ff385c',
+    padding: 15,
+    paddingHorizontal: 40,
+    borderRadius: 10,
+  },
+
+  nextText: {
     color: '#fff',
     fontWeight: '700',
+    fontSize: 16,
   },
 });
+
+export default RoomsScreen;

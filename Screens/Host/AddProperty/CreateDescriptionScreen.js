@@ -12,17 +12,16 @@ import {
 } from 'react-native';
 import { PropertyContext } from '../../../context/PropertyContext';
 
-const CreateDescriptionsScreen = ({ navigation, route }) => {
+const CreateDescriptionsScreen = ({ navigation }) => {
+  const { propertyData, updatePropertyData } = useContext(PropertyContext);
 
-  const prevData = route?.params?.data || {};
-  const { updatePropertyData } = useContext(PropertyContext);
-
+  // ✅ Load existing values properly from context
   const [listingTitle, setListingTitle] = useState(
-    prevData.listingTitle || 'MY PROPERTY 1'
+    propertyData?.description_data?.title || 'MY PROPERTY 1'
   );
 
   const [generalDescription, setGeneralDescription] = useState(
-    prevData.generalDescription ||
+    propertyData?.description_data?.text ||
       "You'll have a great time at this comfortable place to stay."
   );
 
@@ -37,24 +36,16 @@ const CreateDescriptionsScreen = ({ navigation, route }) => {
       return;
     }
 
-    // Save to context
-    updatePropertyData('description', generalDescription.trim());
-
-    const finalData = {
-      ...prevData,
-      listingTitle: listingTitle.trim(),
-      generalDescription: generalDescription.trim(),
-    };
-
-    Alert.alert(
-      'Property Data',
-      JSON.stringify(finalData, null, 2)
-    );
-
-    
-    navigation.navigate('HouseHighlights', {
-      data: finalData,
+    // ✅ Update description_data (for the description section)
+    updatePropertyData('description_data', {
+      title: listingTitle.trim(),
+      text: generalDescription.trim(),
     });
+
+    // ✅ Update the root 'name' field separately (for the property name)
+    updatePropertyData('name', listingTitle.trim());
+
+    navigation.navigate('HouseHighlights');
   };
 
   return (
@@ -65,56 +56,52 @@ const CreateDescriptionsScreen = ({ navigation, route }) => {
         contentContainerStyle={styles.scroll}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Header Section */}
         <View style={styles.header}>
-          <Text style={styles.stepIndicator}>Step 5 of 13</Text>
+        
           <Text style={styles.title}>Create your description</Text>
-          <Text style={styles.subtitle}>
-            Share what makes your place special.
-          </Text>
+      
         </View>
 
-        {/* Listing Title Section */}
         <View style={styles.section}>
           <Text style={styles.label}>Listing title</Text>
           <TextInput
             style={styles.input}
             value={listingTitle}
             onChangeText={setListingTitle}
-            placeholder="e.g., Cozy apartment with city view"
-            placeholderTextColor="#717171"
             maxLength={50}
           />
           <Text style={styles.charCount}>{listingTitle.length}/50</Text>
         </View>
 
-        {/* Description Section */}
         <View style={styles.section}>
           <View style={styles.labelRow}>
             <Text style={styles.label}>Description</Text>
-            <Text style={styles.charCount}>{generalDescription.length}/500</Text>
+            <Text style={styles.charCount}>
+              {generalDescription.length}/500
+            </Text>
           </View>
           <TextInput
             style={styles.textArea}
             value={generalDescription}
             onChangeText={setGeneralDescription}
-            placeholder="Describe your space, amenities, location, and what makes it unique..."
-            placeholderTextColor="#717171"
             multiline
             textAlignVertical="top"
             maxLength={500}
           />
-          <Text style={styles.hint}>
-            Guests will see this description when browsing listings.
-          </Text>
         </View>
 
-      
         <View style={styles.footer}>
-          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
             <Text style={styles.backButtonText}>Back</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
+
+          <TouchableOpacity
+            style={styles.nextButton}
+            onPress={handleNext}
+          >
             <Text style={styles.nextButtonText}>Next</Text>
           </TouchableOpacity>
         </View>
@@ -133,12 +120,20 @@ const styles = StyleSheet.create({
   scroll: {
     flexGrow: 1,
   },
+  // ===== HEADER =====
   header: {
-    paddingHorizontal: 24,
-    paddingTop: 24,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#EBEBEB',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    backgroundColor: '#FF385C',
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 6,
   },
   stepIndicator: {
     fontSize: 14,
@@ -147,7 +142,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   title: {
-    fontSize: 26,
+    fontSize: 20,
     fontWeight: '600',
     color: '#222222',
     marginBottom: 8,
@@ -199,13 +194,6 @@ const styles = StyleSheet.create({
     textAlign: 'right',
     marginTop: 4,
   },
-  hint: {
-    fontSize: 14,
-    color: '#717171',
-    marginTop: 8,
-    lineHeight: 18,
-    fontStyle: 'italic',
-  },
   footer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -219,7 +207,6 @@ const styles = StyleSheet.create({
   backButton: {
     paddingVertical: 12,
     paddingHorizontal: 24,
-   
   },
   backButtonText: {
     fontSize: 16,

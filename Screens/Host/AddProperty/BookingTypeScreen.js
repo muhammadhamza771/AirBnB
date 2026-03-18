@@ -5,158 +5,146 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Alert,
+  useWindowDimensions,
+  SafeAreaView,
+  StatusBar,
 } from "react-native";
-import { PropertyContext } from '../../../context/PropertyContext';
+import { PropertyContext } from "../../../context/PropertyContext";
 
 const primaryColor = "#FF385C";
 
 export default function BookingTypeScreen({ navigation }) {
-  const [selectedType, setSelectedType] = useState("instant");
-  const { propertyData, updatePropertyData } = useContext(PropertyContext);
+  const { propertyData, updateMultiple } = useContext(PropertyContext);
+  const { width } = useWindowDimensions();
+
+  const cardPadding = width * 0.05;
+  const iconSize = width * 0.08;
+
+  const existingBookingType = propertyData?.policies?.bookingType || "request";
+  const [selectedType, setSelectedType] = useState(existingBookingType);
 
   useLayoutEffect(() => {
-    navigation.setOptions({ headerShown: true, title: 'Booking Type' });
+    navigation.setOptions({ headerShown: true, title: "Booking Type" });
   }, [navigation]);
 
   const handleNext = () => {
-    // Update context with booking type
-    updatePropertyData('bookingType', selectedType);
-    
-    // Show alert with all property data
-    const dataString = JSON.stringify({
-      ...propertyData,
-      bookingType: selectedType
-    }, null, 2);
-    
-    Alert.alert(
-      '✅ Property Data Summary',
-      dataString,
-      [
-        { text: 'Edit', onPress: () => navigation.goBack() },
-        { text: 'Submit', onPress: () => navigation.navigate('ServicesScreen', { bookingType: selectedType }) }
-      ]
-    );
+    updateMultiple({
+      policies: {
+        ...propertyData.policies,
+        bookingType: selectedType,
+      },
+    });
+    navigation.navigate("AvailabilityScreen");
   };
 
   return (
-    <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scroll}>
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" />
 
-
+      <ScrollView
+        contentContainerStyle={[styles.scroll, { paddingHorizontal: width * 0.05 }]}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={styles.cardContainer}>
-
-          
+          {/* Instant Book Card */}
           <TouchableOpacity
-            style={[
-              styles.card,
-              selectedType === "instant" && styles.activeCard,
-            ]}
+            style={[styles.card, { padding: cardPadding }, selectedType === "instant" && styles.activeCard]}
             onPress={() => setSelectedType("instant")}
           >
-            <Text style={styles.icon}>⚡</Text>
+            <Text style={[styles.icon, { fontSize: iconSize }]}>⚡</Text>
             <Text style={styles.title}>Instant Book</Text>
             <Text style={styles.description}>
               Guests can book automatically without waiting for your approval.
             </Text>
             <View style={styles.badge}>
-              <Text style={styles.badgeText}>
-                BEST FOR GETTING MORE BOOKINGS
-              </Text>
+              <Text style={styles.badgeText}>BEST FOR GETTING MORE BOOKINGS</Text>
             </View>
           </TouchableOpacity>
-        
+
+          {/* Booking Request Card */}
           <TouchableOpacity
-            style={[
-              styles.card,
-              selectedType === "request" && styles.activeCard,
-            ]}
+            style={[styles.card, { padding: cardPadding }, selectedType === "request" && styles.activeCard]}
             onPress={() => setSelectedType("request")}
           >
-            <Text style={styles.icon}>📩</Text>
+            <Text style={[styles.icon, { fontSize: iconSize }]}>📩</Text>
             <Text style={styles.title}>Booking Request</Text>
             <Text style={styles.description}>
               Guests must send a request and you have 24 hours to accept or decline.
             </Text>
-
             <View style={styles.grayBadge}>
-              <Text style={styles.grayBadgeText}>
-                BEST IF YOU WANT TO VET GUESTS FIRST
-              </Text>
+              <Text style={styles.grayBadgeText}>BEST IF YOU WANT TO VET GUESTS FIRST</Text>
             </View>
           </TouchableOpacity>
-
         </View>
 
-        <View style={styles.bottomNavigation}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Text style={styles.backButtonText}>Back</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.nextButton}
-            onPress={handleNext}
-          >
-            <Text style={styles.nextButtonText}>Next</Text>
-          </TouchableOpacity>
-        </View>
-
+        {/* Spacer to prevent content overlap with footer */}
+        <View style={{ height: 120 }} />
       </ScrollView>
-    </View>
+
+      {/* Sticky Footer */}
+      <View style={styles.footer}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Text style={styles.back}>Back</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.nextBtn} onPress={handleNext}>
+          <Text style={styles.nextText}>Next</Text>
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F7F7F7",
+  container: { 
+    flex: 1, 
+    backgroundColor: "#F7F7F7" 
   },
+
   scroll: {
-    padding: 20,
-    paddingTop: 60,
-    paddingBottom: 140,
+    paddingTop: 40,
+    paddingBottom: 0,
   },
-  step: {
-    textAlign: "center",
-    fontSize: 12,
-    letterSpacing: 2,
-    color: "#888",
-    marginBottom: 30,
-  },
+
   cardContainer: {
     gap: 20,
   },
+
   card: {
     backgroundColor: "#fff",
-    borderRadius: 20,
-    padding: 25,
-    borderWidth: 2,
-    borderColor: "#eee",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#ddd",
     shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 5,
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 3,
   },
+
   activeCard: {
     borderColor: primaryColor,
     backgroundColor: "#FFF0F3",
   },
+
   icon: {
-    fontSize: 28,
     marginBottom: 10,
   },
+
   title: {
     fontSize: 18,
-    fontWeight: "bold",
+    fontWeight: "600",
+    marginTop: 20,
+    marginBottom: 6,
+    color: "#1A1A1A",
   },
+
   description: {
+    fontSize: 14,
     color: "#666",
-    marginTop: 8,
-    marginBottom: 15,
+    marginBottom: 100,
+    lineHeight: 20,
   },
+
   badge: {
     backgroundColor: primaryColor,
     paddingVertical: 6,
@@ -164,11 +152,13 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignSelf: "flex-start",
   },
+  
   badgeText: {
     color: "#fff",
     fontSize: 11,
     fontWeight: "600",
   },
+
   grayBadge: {
     backgroundColor: "#E5E5E5",
     paddingVertical: 6,
@@ -176,73 +166,44 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignSelf: "flex-start",
   },
+  
   grayBadgeText: {
     color: "#777",
     fontSize: 11,
     fontWeight: "600",
   },
-  publishButton: {
-    marginTop: 40,
-    backgroundColor: primaryColor,
-    padding: 16,
-    borderRadius: 30,
-    alignItems: "center",
-  },
-  publishText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-  bottomNavigation: {
-    position: 'absolute',
+
+  // Footer styling
+  footer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    padding: 20,
+    borderTopWidth: 1,
+    borderColor: "#eee",
+    backgroundColor: "#fff",
+    position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 10,
+    zIndex: 10,
   },
-  backButton: {
-    flex: 1,
-    paddingVertical: 14,
   
-
-    borderColor: primaryColor,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    marginRight: 100,
+  back: { 
+    textDecorationLine: "underline", 
+    fontSize: 16, 
+    color: "#666" 
   },
-  backButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: primaryColor,
-  },
-  nextButton: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 30,
+  
+  nextBtn: {
     backgroundColor: primaryColor,
-    alignItems: 'center',
-    marginLeft: 10,
-    shadowColor: primaryColor,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
+    paddingHorizontal: 30,
+    paddingVertical: 14,
+    borderRadius: 10,
+    alignItems: "center",
   },
-  nextButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
+  
+  nextText: { 
+    color: "#fff", 
+    fontWeight: "600" 
   },
 });

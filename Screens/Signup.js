@@ -7,208 +7,212 @@ import {
   StyleSheet,
   Alert,
   ActivityIndicator,
+  ScrollView,
+  StatusBar,
 } from 'react-native';
-import { signupUser } from '../BackendServices/Apiservices'; // API file
+import LinearGradient from 'react-native-linear-gradient';
+import { signupUser } from '../BackendServices/Apiservices';
 
 const primaryColor = '#FF385C';
-const textColor = '#222222';
-const subtitleColor = '#717171';
-const borderColor = '#DDDDDD';
 
 const SignupScreen = ({ navigation }) => {
   const [formData, setFormData] = useState({
     username: '',
     email: '',
     password: '',
-   
+    confirmPassword: '',
   });
 
-  const [allFieldError, setAllFieldError] = useState('');
-  const [emailError, setEmailError] = useState('');
-  const [passwordError, setPasswordError] = useState('');
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Input change handler
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  // Signup button
   const handleSignup = async () => {
-    setAllFieldError('');
-    setEmailError('');
-    setPasswordError('');
-
     const { username, email, password, confirmPassword } = formData;
 
-    // Basic validation
+    setError('');
+
     if (!username || !email || !password || !confirmPassword) {
-      setAllFieldError('Please fill all fields');
+      setError('Please fill all fields');
       return;
     }
 
-    // Gmail validation
-    const emailRegex = /^[a-zA-Z0-9._]+@gmail\.com$/;
-    if (!emailRegex.test(email)) {
-      setEmailError('Please enter a valid Gmail address');
-      return;
-    }
-
-    // Password match
     if (password !== confirmPassword) {
-      setPasswordError('Passwords do not match');
+      setError('Passwords do not match');
       return;
     }
 
     try {
       setLoading(true);
 
-const response = await signupUser({
-  fullname: formData.username,
-  email: formData.email,
-  password: formData.password,   
-});
-      Alert.alert('Success', response.message || 'Account created successfully');
+      const response = await signupUser({
+        fullname: username,
+        email,
+        password,
+      });
 
+      Alert.alert('Success', response.message || 'Account created!');
       navigation.replace('Login');
-    } catch (error) {
-      console.log('Full Error:', error);
-
-      if (error.response) {
-        // Backend error
-        Alert.alert(
-          'Signup Failed',
-          error.response.data?.message || 'Server error'
-        );
-      } else if (error.request) {
-        // Network error
-        Alert.alert(
-          'Network Error',
-          'Cannot connect to server. Check IP & WiFi.'
-        );
-      } else {
-        Alert.alert('Error', error.message);
-      }
+    } catch (err) {
+      Alert.alert('Signup Failed', 'Something went wrong');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Create Account</Text>
+    <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+      <StatusBar barStyle="light-content" />
 
-      {allFieldError ? <Text style={styles.error}>{allFieldError}</Text> : null}
-
-      {/* Username */}
-      <TextInput
-        style={styles.input}
-        placeholder="Full Name"
-        value={formData.username}
-        onChangeText={text => handleInputChange('username', text)}
-      />
-
-      {/* Email */}
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        keyboardType="email-address"
-        autoCapitalize="none"
-        value={formData.email}
-        onChangeText={text => handleInputChange('email', text)}
-      />
-      {emailError ? <Text style={styles.error}>{emailError}</Text> : null}
-
-      {/* Password */}
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        secureTextEntry
-        value={formData.password}
-        onChangeText={text => handleInputChange('password', text)}
-      />
-
-      {/* Confirm Password */}
-      <TextInput
-        style={styles.input}
-        placeholder="Confirm Password"
-        secureTextEntry
-        value={formData.confirmPassword}
-        onChangeText={text => handleInputChange('confirmPassword', text)}
-      />
-      {passwordError ? <Text style={styles.error}>{passwordError}</Text> : null}
-
-      {/* Signup Button */}
-      <TouchableOpacity
-        style={styles.button}
-        onPress={handleSignup}
-        disabled={loading}
+      {/* Gradient Header */}
+      <LinearGradient
+        colors={['#FF385C', '#FF6B81']}
+        style={styles.header}
       >
-        {loading ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.buttonText}>Sign Up</Text>
-        )}
-      </TouchableOpacity>
-
-      {/* Login link */}
-      <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-        <Text style={styles.loginText}>
-          Already have an account? <Text style={styles.loginBold}>Login</Text>
+        <Text style={styles.headerTitle}>Join Us</Text>
+        <Text style={styles.headerSubtitle}>
+          Create your account to get started
         </Text>
-      </TouchableOpacity>
-    </View>
+      </LinearGradient>
+
+      {/* Card Section */}
+      <View style={styles.card}>
+        {error ? <Text style={styles.error}>{error}</Text> : null}
+
+        <TextInput
+          style={styles.input}
+          placeholder="Full Name"
+          placeholderTextColor="#999"
+          value={formData.username}
+          onChangeText={text => handleInputChange('username', text)}
+        />
+
+        <TextInput
+          style={styles.input}
+          placeholder="Email Address"
+          placeholderTextColor="#999"
+          keyboardType="email-address"
+          autoCapitalize="none"
+          value={formData.email}
+          onChangeText={text => handleInputChange('email', text)}
+        />
+
+        <TextInput
+          style={styles.input}
+          placeholder="Password"
+          placeholderTextColor="#999"
+          secureTextEntry
+          value={formData.password}
+          onChangeText={text => handleInputChange('password', text)}
+        />
+
+        <TextInput
+          style={styles.input}
+          placeholder="Confirm Password"
+          placeholderTextColor="#999"
+          secureTextEntry
+          value={formData.confirmPassword}
+          onChangeText={text => handleInputChange('confirmPassword', text)}
+        />
+
+        <TouchableOpacity
+          style={styles.button}
+          onPress={handleSignup}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.buttonText}>Create Account</Text>
+          )}
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={() => navigation.navigate('Login')}
+        >
+          <Text style={styles.loginText}>
+            Already have an account?{' '}
+            <Text style={styles.loginBold}>Login</Text>
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </ScrollView>
   );
 };
 
 export default SignupScreen;
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  header: {
+    height: 220,
     justifyContent: 'center',
-    padding: 24,
-    backgroundColor: '#fff',
+    alignItems: 'center',
+    borderBottomLeftRadius: 40,
+    borderBottomRightRadius: 40,
+    paddingTop: 40,
   },
-  title: {
-    fontSize: 28,
+  headerTitle: {
+    fontSize: 32,
     fontWeight: 'bold',
-    marginBottom: 20,
-    textAlign: 'center',
+    color: '#fff',
+  },
+  headerSubtitle: {
+    fontSize: 15,
+    color: '#fff',
+    marginTop: 8,
+    opacity: 0.9,
+  },
+  card: {
+    flex: 1,
+    backgroundColor: '#fff',
+    marginHorizontal: 20,
+    marginTop: -40,
+    borderRadius: 20,
+    padding: 20,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
   },
   input: {
     borderWidth: 1,
-    borderColor: borderColor,
-    padding: 14,
-    borderRadius: 12,
-    marginBottom: 14,
+    borderColor: '#eee',
+    backgroundColor: '#fafafa',
+    padding: 15,
+    borderRadius: 14,
+    marginBottom: 15,
     fontSize: 16,
-    color: textColor,
   },
   error: {
     color: '#E53935',
     marginBottom: 10,
-    fontSize: 13,
+    textAlign: 'center',
   },
   button: {
     backgroundColor: primaryColor,
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 14,
     alignItems: 'center',
     marginTop: 10,
+    shadowColor: primaryColor,
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
   },
   buttonText: {
-    color: '#FFF',
-    fontWeight: '700',
+    color: '#fff',
+    fontWeight: 'bold',
     fontSize: 16,
   },
   loginText: {
-    marginTop: 20,
     textAlign: 'center',
-    color: subtitleColor,
+    marginTop: 20,
+    color: '#777',
   },
   loginBold: {
     color: primaryColor,
-    fontWeight: '700',
+    fontWeight: 'bold',
   },
 });

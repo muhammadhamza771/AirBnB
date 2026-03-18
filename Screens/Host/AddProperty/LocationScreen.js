@@ -19,7 +19,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import { PropertyContext } from '../../../context/PropertyContext';
 
 const AddressScreen = ({ navigation }) => {
-  const { updateMultiple } = useContext(PropertyContext);
+  const { updatePropertyData } = useContext(PropertyContext);
 
   const [location, setLocation] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -27,10 +27,10 @@ const AddressScreen = ({ navigation }) => {
   const [street, setStreet] = useState('');
   const [city, setCity] = useState('');
   const [country, setCountry] = useState('');
-
   const [nearbyPlaces, setNearbyPlaces] = useState([]);
   const [newPlace, setNewPlace] = useState('');
 
+  // Reverse geocode to get street, city, country
   const reverseGeocode = async (latitude, longitude) => {
     try {
       const res = await axios.get(
@@ -44,15 +44,15 @@ const AddressScreen = ({ navigation }) => {
       );
 
       const addr = res.data.address || {};
-
-      setStreet(addr.road || '');
-      setCity(addr.city || addr.town || '');
+      setStreet(addr.road || addr.street || addr.suburb || '');
+      setCity(addr.city || addr.town || addr.village || '');
       setCountry(addr.country || '');
     } catch (err) {
       Alert.alert('Error', 'Unable to fetch address');
     }
   };
 
+  // Get current user location
   const getCurrentLocation = async () => {
     setLoading(true);
 
@@ -61,7 +61,6 @@ const AddressScreen = ({ navigation }) => {
         const granted = await PermissionsAndroid.request(
           PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
         );
-
         if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
           Alert.alert('Permission denied');
           setLoading(false);
@@ -72,14 +71,12 @@ const AddressScreen = ({ navigation }) => {
       Geolocation.getCurrentPosition(
         async (pos) => {
           const { latitude, longitude } = pos.coords;
-
           const region = {
             latitude,
             longitude,
             latitudeDelta: 0.01,
             longitudeDelta: 0.01,
           };
-
           setLocation(region);
           await reverseGeocode(latitude, longitude);
           setLoading(false);
@@ -88,43 +85,44 @@ const AddressScreen = ({ navigation }) => {
           Alert.alert('Location error', err.message);
           setLoading(false);
         },
-        { enableHighAccuracy: true }
+        { enableHighAccuracy: true, timeout: 20000 }
       );
     } catch (err) {
       setLoading(false);
     }
   };
 
+  // Add nearby place
   const addPlace = () => {
     if (!newPlace.trim()) return;
     setNearbyPlaces([...nearbyPlaces, newPlace.trim()]);
     setNewPlace('');
   };
 
+  // Remove nearby place
   const removePlace = (index) => {
     const updated = nearbyPlaces.filter((_, i) => i !== index);
     setNearbyPlaces(updated);
   };
 
+  // Save and go next
   const goNext = () => {
     if (!street || !city || !country) {
       Alert.alert('Error', 'Please complete address');
       return;
     }
 
-    updateMultiple({
-      address: {
-        street,
-        city,
-        country,
-      },
-      location: location
-        ? {
-            latitude: location.latitude,
-            longitude: location.longitude,
-          }
-        : null,
+    updatePropertyData('location', {
+      country,
+      city,
+      area: street,
+      address: street,
+      mapPin: '',
+      useCurrent: !!location,
       nearbyPlaces,
+      latitude: location?.latitude || null,
+      longitude: location?.longitude || null,
+      mapImageUrl: '',
     });
 
     navigation.navigate('PetsStepScreen');
@@ -132,87 +130,102 @@ const AddressScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 30 }}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Enter your address</Text>
-          <Text style={styles.subtitle}>
-            Your address is only shared after booking.
-          </Text>
-        </View>
+      <View style={styles.container}>
+        {/* Scrollable content */}
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.header}>
+            <Text style={styles.title}>Enter your address</Text>
+          
+          </View>
 
-        <View style={styles.content}>
-          <TouchableOpacity
-            style={styles.locationButton}
-            onPress={getCurrentLocation}
-          >
-            <Icon name="location-on" size={22} color="#FF385C" />
-            <Text style={styles.locationText}>
-              Use my current location
-            </Text>
-            {loading && <ActivityIndicator style={{ marginLeft: 10 }} />}
-          </TouchableOpacity>
+          <View style={styles.content}>
+            <TouchableOpacity
+              style={styles.locationButton}
+              onPress={getCurrentLocation}
+            >
+              <Icon name="location-on" size={22} color="#FF385C" />
+              <Text style={styles.locationText}>Use my current location</Text>
+              {loading && <ActivityIndicator style={{ marginLeft: 10 }} />}
+            </TouchableOpacity>
 
-          <TextInput
-            style={styles.input}
-            placeholder="Street"
-            value={street}
-            onChangeText={setStreet}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="City"
-            value={city}
-            onChangeText={setCity}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Country"
-            value={country}
-            onChangeText={setCountry}
-          />
+            <TextInput
+              style={styles.input}
+              placeholder="Street / Area"
+              value={street}
+              onChangeText={setStreet}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="City"
+              value={city}
+              onChangeText={setCity}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Country"
+              value={country}
+              onChangeText={setCountry}
+            />
 
-          {location && (
-            <MapView style={styles.map} region={location} showsUserLocation>
-              <Marker coordinate={location} />
-            </MapView>
-          )}
+            {location && (
+              <View style={styles.mapWrapper}>
+                <MapView
+                  style={styles.map}
+                  region={location}
+                  showsUserLocation={true}
+                >
+                  <Marker coordinate={location}>
+                    <View style={styles.markerContainer}>
+                      <View style={styles.markerDot} />
+                    </View>
+                  </Marker>
+                </MapView>
+                <Text style={styles.attribution}>© OpenStreetMap</Text>
+              </View>
+            )}
 
-          <View style={styles.nearbySection}>
-            <Text style={styles.sectionTitle}>Nearby Places</Text>
-
-            <View style={styles.addRow}>
-              <TextInput
-                style={styles.addInput}
-                placeholder="Add nearby place"
-                value={newPlace}
-                onChangeText={setNewPlace}
-              />
-              <TouchableOpacity style={styles.addBtn} onPress={addPlace}>
-                <Text style={styles.addBtnText}>Add</Text>
-              </TouchableOpacity>
-            </View>
-
-            {nearbyPlaces.map((place, index) => (
-              <View key={index} style={styles.placeItem}>
-                <Text style={styles.placeText}>{place}</Text>
-                <TouchableOpacity onPress={() => removePlace(index)}>
-                  <Icon name="delete" size={20} color="#FF385C" />
+            {/* Nearby places */}
+            <View style={styles.nearbySection}>
+              <Text style={styles.sectionTitle}>Nearby Places</Text>
+              <View style={styles.addRow}>
+                <TextInput
+                  style={styles.addInput}
+                  placeholder="Add nearby place"
+                  value={newPlace}
+                  onChangeText={setNewPlace}
+                />
+                <TouchableOpacity style={styles.addBtn} onPress={addPlace}>
+                  <Text style={styles.addBtnText}>Add</Text>
                 </TouchableOpacity>
               </View>
-            ))}
-          </View>
 
-          <View style={styles.footer}>
-            <TouchableOpacity onPress={() => navigation.goBack()}>
-              <Text style={styles.back}>Back</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.nextBtn} onPress={goNext}>
-              <Text style={styles.nextText}>Next</Text>
-            </TouchableOpacity>
+              {nearbyPlaces.map((place, index) => (
+                <View key={index} style={styles.placeItem}>
+                  <Icon name="place" size={20} color="#FF385C" />
+                  <Text style={styles.placeText}>{place}</Text>
+                  <TouchableOpacity onPress={() => removePlace(index)}>
+                    <Icon name="delete" size={20} color="#999" />
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
           </View>
+        </ScrollView>
+
+        {/* Footer always visible */}
+        <View style={styles.footer}>
+          <TouchableOpacity onPress={() => navigation.goBack()}>
+            <Text style={styles.back}>Back</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.nextBtn} onPress={goNext}>
+            <Text style={styles.nextText}>Next</Text>
+          </TouchableOpacity>
         </View>
-      </ScrollView>
+      </View>
     </SafeAreaView>
   );
 };
@@ -221,13 +234,24 @@ export default AddressScreen;
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
-
-  header: { padding: 20, borderBottomWidth: 1, borderColor: '#eee' },
-  title: { fontSize: 22, fontWeight: '700', color: '#111' },
+  scrollContent: { paddingBottom: 120 }, // space for footer
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    backgroundColor: '#FF385C',
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 6,
+  },
+  title: { fontSize: 20, fontWeight: '700', color: '#111' },
   subtitle: { fontSize: 14, color: '#777', marginTop: 4 },
-
   content: { padding: 20 },
-
   locationButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -235,9 +259,10 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 10,
     marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#eee',
   },
-  locationText: { marginLeft: 8, fontWeight: '600', fontSize: 15 },
-
+  locationText: { marginLeft: 8, fontWeight: '600', fontSize: 15, flex: 1 },
   input: {
     borderWidth: 1,
     borderColor: '#eee',
@@ -246,16 +271,41 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     backgroundColor: '#F9F9F9',
   },
-
-  map: {
+  mapWrapper: {
     height: 200,
     borderRadius: 12,
     marginBottom: 20,
+    overflow: 'hidden',
+    position: 'relative',
   },
-
+  map: { flex: 1 },
+  markerContainer: { alignItems: 'center', justifyContent: 'center' },
+  markerDot: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#FF385C',
+    borderWidth: 3,
+    borderColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  attribution: {
+    position: 'absolute',
+    bottom: 4,
+    right: 8,
+    fontSize: 10,
+    color: '#666',
+    backgroundColor: 'rgba(255,255,255,0.8)',
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
   nearbySection: { marginBottom: 20 },
   sectionTitle: { fontSize: 18, fontWeight: '700', marginBottom: 10 },
-
   addRow: { flexDirection: 'row', marginBottom: 10 },
   addInput: {
     flex: 1,
@@ -273,25 +323,31 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   addBtnText: { color: '#fff', fontWeight: '600' },
-
   placeItem: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     backgroundColor: '#F7F7F7',
     padding: 12,
     borderRadius: 10,
     marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#eee',
   },
-  placeText: { fontSize: 15 },
-
+  placeText: { fontSize: 15, flex: 1, marginLeft: 8 },
   footer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 20,
+    padding: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+    backgroundColor: '#fff',
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
   },
-  back: { textDecorationLine: 'underline', fontSize: 16 },
-
+  back: { textDecorationLine: 'underline', fontSize: 16, color: '#666' },
   nextBtn: {
     backgroundColor: '#FF385C',
     paddingHorizontal: 30,

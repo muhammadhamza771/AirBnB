@@ -1,96 +1,82 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  Alert,
   SafeAreaView,
+  StatusBar,
 } from 'react-native';
 import { PropertyContext } from '../../../context/PropertyContext';
+import Icon from 'react-native-vector-icons/Ionicons';
 
-const PROPERTY_TYPES = [
-  {
-    id: 'entire_place',
-    label: 'Entire place',
-    description: 'Guests have the whole place to themselves.',
-    icon: '🏠',
-  },
-  {
-    id: 'private_room',
-    label: 'Private room',
-    description: 'Guests have their own room and shared spaces.',
-    icon: '🚪',
-  },
-  {
-    id: 'shared_room',
-    label: 'Shared room',
-    description: 'Guests sleep in a shared room with others.',
-    icon: '🛏️',
-  },
+const PLACE_TYPES = [
+  { id: 'entire_place', label: 'Entire place', description: 'Guests have the whole place to themselves.', icon: '🏠' },
+  { id: 'private_room', label: 'Private room', description: 'Guests have their own room and shared spaces.', icon: '🚪' },
+  { id: 'shared_room', label: 'Shared room', description: 'Guests sleep in a shared room with others.', icon: '🛏️' },
 ];
 
-const PropertyType = ({ navigation, route }) => {
+const PlaceTypeScreen = ({ navigation }) => {
+  const { propertyData, updatePropertyData } = useContext(PropertyContext);
   const [selected, setSelected] = useState(null);
-  const prevData = route.params || {};
-  const { updatePropertyData } = useContext(PropertyContext);
+
+  // ✅ Auto-select previously saved placeType
+  useEffect(() => {
+    if (!propertyData?.placeType) return;
+
+    const savedType = propertyData.placeType.toLowerCase().trim();
+    const found = PLACE_TYPES.find(item => item.label.toLowerCase() === savedType);
+    if (found) setSelected(found);
+  }, [propertyData]);
 
   const handleNext = () => {
     if (!selected) return;
-
-    // Save to context
-    updatePropertyData('propertyType', selected.label);
-
-    const dataToSend = {
-      ...prevData,
-      propertyType: {
-        id: selected.id,
-        label: selected.label,
-      },
-    };
-
-    navigation.navigate('GuestCapacity', dataToSend);
+    updatePropertyData('placeType', selected.label);
+    navigation.navigate('GuestCapacity'); // Next step
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <Text style={styles.step}>STEP 3 OF 11</Text>
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="light-content" backgroundColor="#FF385C" />
 
-      <Text style={styles.title}>
-        What type of place will guests have?
-      </Text>
+      {/* ===== HEADER ===== */}
+      <View style={styles.header}>
+        
+        <View style={styles.headerTextContainer}>
+          <Text style={styles.headerTitle}>What type of place will guests have?</Text>
+        
+        </View>
+      </View>
 
-      {PROPERTY_TYPES.map(item => {
-        const isSelected = selected?.id === item.id;
+      {/* ===== PLACE TYPE CARDS ===== */}
+      <View style={styles.container}>
+        {PLACE_TYPES.map(item => {
+          const isSelected = selected?.id === item.id;
 
-        return (
-          <TouchableOpacity
-            key={item.id}
-            style={[
-              styles.card,
-              isSelected && styles.selectedCard,
-            ]}
-            onPress={() => setSelected(item)}
-          >
-            <View style={{ flex: 1 }}>
-              <Text style={styles.cardTitle}>{item.label}</Text>
-              <Text style={styles.cardDesc}>{item.description}</Text>
-            </View>
-            <Text style={styles.icon}>{item.icon}</Text>
-          </TouchableOpacity>
-        );
-      })}
+          return (
+            <TouchableOpacity
+              key={item.id}
+              style={[styles.card, isSelected && styles.selectedCard]}
+              onPress={() => setSelected(item)}
+            >
+              <View style={{ flex: 1 }}>
+                <Text style={styles.cardTitle}>{item.label}</Text>
+                <Text style={styles.cardDesc}>{item.description}</Text>
+              </View>
+              <Text style={styles.icon}>{item.icon}</Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
 
+      {/* ===== FOOTER ===== */}
       <View style={styles.footer}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Text style={styles.back}>Back</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[
-            styles.nextBtn,
-            !selected && { backgroundColor: '#ccc' },
-          ]}
+          style={[styles.nextBtn, !selected && { backgroundColor: '#ccc' }]}
           disabled={!selected}
           onPress={handleNext}
         >
@@ -101,24 +87,32 @@ const PropertyType = ({ navigation, route }) => {
   );
 };
 
-export default PropertyType;
+export default PlaceTypeScreen;
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    backgroundColor: '#fff',
+  safeArea: { flex: 1, backgroundColor: '#fff' },
+
+  // ===== HEADER =====
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    backgroundColor: '#FF385C',
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 6,
   },
-  step: {
-    fontSize: 12,
-    color: '#777',
-    marginBottom: 10,
-  },
-  title: {
-    fontSize: 26,
-    fontWeight: '700',
-    marginBottom: 20,
-  },
+  backIcon: { marginRight: 12 },
+  headerTextContainer: { flex: 1 },
+  headerTitle: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  headerSubtitle: { fontSize: 14, color: '#FFDDE0', marginTop: 2 },
+
+  container: { flex: 1, padding: 16, paddingTop: 20 },
   card: {
     borderWidth: 1,
     borderColor: '#ddd',
@@ -128,23 +122,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 15,
   },
-  selectedCard: {
-    borderColor: '#000',
-    backgroundColor: '#f9f9f9',
-  },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  cardDesc: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 4,
-  },
-  icon: {
-    fontSize: 36,
-    marginLeft: 10,
-  },
+  selectedCard: { borderColor: '#FF385C', backgroundColor: '#f9f9f9' },
+  cardTitle: { fontSize: 18, fontWeight: '600' },
+  cardDesc: { fontSize: 14, color: '#666', marginTop: 4 },
+  icon: { fontSize: 36, marginLeft: 10 },
+
   footer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -152,19 +134,10 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#eee',
     paddingTop: 15,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
   },
-  back: {
-    fontSize: 16,
-    textDecorationLine: 'underline',
-  },
-  nextBtn: {
-    backgroundColor: '#FF385C',
-    paddingHorizontal: 30,
-    paddingVertical: 12,
-    borderRadius: 10,
-  },
-  nextText: {
-    color: '#fff',
-    fontWeight: '700',
-  },
+  back: { fontSize: 16, textDecorationLine: 'underline', color: '#222' },
+  nextBtn: { backgroundColor: '#FF385C', paddingHorizontal: 30, paddingVertical: 12, borderRadius: 10 },
+  nextText: { color: '#fff', fontWeight: '700' },
 });

@@ -66,6 +66,13 @@ const HostTab = ({ navigation }) => {
       'AddDiscountsScreen',
       'LocationScreen',
       'PropertyImageUpload',
+      'BookingTypeScreen',
+      'PriceScreen',
+      'CancellationPoliciesScreen',
+      'SafetyDetailsScreen',
+      'ServicesScreen',
+      'AvailabilityScreen',
+      'PetsStepScreen',
     ];
 
     return {

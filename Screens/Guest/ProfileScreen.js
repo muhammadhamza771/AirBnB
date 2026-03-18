@@ -11,8 +11,7 @@ import {
   Dimensions,
   StatusBar,
   SafeAreaView,
-  ActivityIndicator,
-  Alert  // ✅ IMPORT Alert
+  ActivityIndicator
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { AuthContext } from '../../context/AuthContext';
@@ -61,10 +60,11 @@ export default function ProfileScreen() {
     gender: '',
     address: '',
     bio: '',
-    status: 'pending'
+    status: 'pending',
+    role: 'guest'
   });
   
-  // Habits
+  // Habits - use unique IDs
   const [habits, setHabits] = useState([]);
   
   // Family members
@@ -104,7 +104,6 @@ export default function ProfileScreen() {
       if (response?.success && response?.data) {
         const data = response.data;
         
-        // Basic info
         setUser({
           fullname: data.fullname || '',
           email: data.email || '',
@@ -112,20 +111,28 @@ export default function ProfileScreen() {
           gender: data.gender || '',
           address: data.full_address || '',
           bio: data.bio || '',
-          status: data.verification_status || 'pending'
+          status: data.verification_status || 'pending',
+          role: data.role || 'guest'
         });
         
-        // Habits
+        // Habits - add unique IDs
         if (data.habbits) {
+          let habitsArray = [];
           if (Array.isArray(data.habbits)) {
-            setHabits(data.habbits);
+            habitsArray = data.habbits;
           } else if (typeof data.habbits === 'string') {
             try {
-              setHabits(JSON.parse(data.habbits));
+              habitsArray = JSON.parse(data.habbits);
             } catch (e) {
-              setHabits([]);
+              habitsArray = [];
             }
           }
+          // Add unique ID to each habit for proper deletion
+          const habitsWithIds = habitsArray.map((habit, index) => ({
+            id: `habit_${Date.now()}_${index}`,
+            text: habit
+          }));
+          setHabits(habitsWithIds);
         }
         
         // Family members
@@ -149,7 +156,6 @@ export default function ProfileScreen() {
     }
   };
 
-  // ==================== UPDATE PROFILE - SINGLE API ====================
   const saveProfile = async () => {
     if (!authUser?.id) return;
     setSaving(true);
@@ -158,7 +164,6 @@ export default function ProfileScreen() {
     try {
       const formData = new FormData();
       
-      // ===== 1. TEXT FIELDS =====
       if (user.fullname) formData.append('fullname', user.fullname);
       if (user.email) formData.append('email', user.email);
       if (user.phonenumber) formData.append('phonenumber', user.phonenumber);
@@ -166,17 +171,15 @@ export default function ProfileScreen() {
       if (user.address) formData.append('full_address', user.address);
       if (user.bio) formData.append('bio', user.bio);
       
-      // ===== 2. HABITS AS JSON =====
-      if (habits.length > 0) {
-        formData.append('habbits', JSON.stringify(habits));
+      if (habits.length >= 0) {
+        const habitsText = habits.map(h => h.text);
+        formData.append('habbits', JSON.stringify(habitsText));
       }
       
-      // ===== 3. FAMILY MEMBERS AS JSON =====
-      if (family.length > 0) {
+      if (family.length >= 0) {
         formData.append('family_members', JSON.stringify(family));
       }
       
-      // ===== 4. IMAGES =====
       if (newProfileImage) {
         formData.append('profile_picture', {
           uri: newProfileImage,
@@ -217,7 +220,6 @@ export default function ProfileScreen() {
         });
       }
       
-      // ===== 5. API CALL =====
       const response = await axios.put(
         `${BASE_URL}/users/profile_update_simple/${authUser.id}`,
         formData,
@@ -240,21 +242,28 @@ export default function ProfileScreen() {
           gender: data.gender || '',
           address: data.full_address || '',
           bio: data.bio || '',
-          status: data.verification_status || 'pending'
+          status: data.verification_status || 'pending',
+          role: data.role || 'guest'
         });
         
-        // Habits
+        // Habits - add IDs again
         if (data.habbits) {
+          let habitsArray = [];
           if (Array.isArray(data.habbits)) {
-            setHabits(data.habbits);
+            habitsArray = data.habbits;
           } else if (typeof data.habbits === 'string') {
             try {
-              setHabits(JSON.parse(data.habbits));
+              habitsArray = JSON.parse(data.habbits);
             } catch (e) {}
           }
+          const habitsWithIds = habitsArray.map((habit, index) => ({
+            id: `habit_${Date.now()}_${index}`,
+            text: habit
+          }));
+          setHabits(habitsWithIds);
         }
         
-        // ✅ Family members - UPDATE FROM RESPONSE
+        // Family members
         if (data.family_members && Array.isArray(data.family_members)) {
           setFamily(data.family_members);
         }
@@ -276,12 +285,11 @@ export default function ProfileScreen() {
         setIsEditing(false);
         setError('');
         
-        Alert.alert('Success', 'Profile updated successfully');
+        console.log('Profile updated successfully');
       }
     } catch (error) {
       console.log('Update error:', error);
       setError('Update failed: ' + (error.response?.data?.detail || error.message));
-      Alert.alert('Error', 'Update failed');
     } finally {
       setSaving(false);
     }
@@ -289,41 +297,42 @@ export default function ProfileScreen() {
 
   // ==================== IMAGE PICKER ====================
   const pickImage = (setImage, allowGallery = true) => {
-    Alert.alert(
-      "Select Image",
-      "Choose option",
-      [
-        { 
-          text: "Camera", 
-          onPress: () => {
-            launchCamera({ mediaType: 'photo', quality: 0.8 }, (res) => {
-              if (res.assets?.[0]) setImage(res.assets[0].uri);
-            });
-          }
-        },
-        ...(allowGallery ? [{
-          text: "Gallery", 
-          onPress: () => {
-            launchImageLibrary({ mediaType: 'photo', quality: 0.8 }, (res) => {
-              if (res.assets?.[0]) setImage(res.assets[0].uri);
-            });
-          }
-        }] : []),
-        { text: "Cancel", style: "cancel" }
-      ]
-    );
+    const options = {
+      mediaType: 'photo',
+      quality: 0.8,
+    };
+
+    if (allowGallery) {
+      launchImageLibrary(options, (res) => {
+        if (res.assets?.[0]) {
+          setImage(res.assets[0].uri);
+        }
+      });
+    } else {
+      launchCamera(options, (res) => {
+        if (res.assets?.[0]) {
+          setImage(res.assets[0].uri);
+        }
+      });
+    }
   };
 
-
+  // ==================== HABITS ====================
   const addHabit = () => {
     if (newHabit.trim()) {
-      setHabits([...habits, newHabit.trim()]);
+      const newHabitItem = {
+        id: `habit_${Date.now()}_${habits.length}`,
+        text: newHabit.trim()
+      };
+      setHabits([...habits, newHabitItem]);
       setNewHabit('');
     }
   };
   
   const removeHabit = (index) => {
-    setHabits(habits.filter((_, i) => i !== index));
+    const updatedHabits = habits.filter((_, i) => i !== index);
+    setHabits(updatedHabits);
+    console.log('Habit deleted, new count:', updatedHabits.length);
   };
 
   // ==================== FAMILY ====================
@@ -365,58 +374,34 @@ export default function ProfileScreen() {
       bio: newMember.bio || null
     };
     
+    let updatedFamily;
+    
     if (editMemberIndex !== null) {
-      // Update existing member
-      const updatedFamily = [...family];
+      updatedFamily = [...family];
       updatedFamily[editMemberIndex] = newMemberData;
-      setFamily(updatedFamily);
     } else {
-      // Add new member
-      setFamily([...family, newMemberData]);
+      updatedFamily = [...family, newMemberData];
     }
+    
+    setFamily(updatedFamily);
+    console.log('Family updated, new count:', updatedFamily.length);
     
     setShowFamilyModal(false);
     setEditMemberIndex(null);
     setNewMember({ name: '', relation: '', age: '', gender: '', email: '', phone: '', bio: '' });
+    setError('');
   };
   
-  // ✅ FIXED DELETE FUNCTION
   const deleteFamily = (index) => {
-    const member = family[index];
-    
-    Alert.alert(
-      "Delete Member",
-      `Are you sure you want to delete ${member.fullname || 'this member'}?`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: () => {
-            // Remove from local state - UI se turant hat jayega
-            const updatedFamily = family.filter((_, i) => i !== index);
-            setFamily(updatedFamily);
-            
-            // Show message
-            Alert.alert('Success', 'Member removed. Click Save to confirm changes.');
-          }
-        }
-      ]
-    );
+    const updatedFamily = family.filter((_, i) => i !== index);
+    setFamily(updatedFamily);
+    console.log('Family member deleted, new count:', updatedFamily.length);
   };
 
   // ==================== LOGOUT & SWITCH ====================
   const doLogout = () => {
-    Alert.alert("Logout", "Are you sure?", [
-      { text: "Cancel", style: "cancel" },
-      { 
-        text: "Logout", 
-        onPress: () => {
-          logout?.();
-          navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
-        }
-      }
-    ]);
+    logout?.();
+    navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
   };
   
   const switchRole = () => {
@@ -428,7 +413,9 @@ export default function ProfileScreen() {
         switchToHost?.();
         navigation.reset({ index: 0, routes: [{ name: 'HostTab' }] });
       }
-    } catch (e) {}
+    } catch (e) {
+      console.log('Switch role error:', e);
+    }
   };
 
   const getStatusColor = (s) => {
@@ -573,7 +560,7 @@ export default function ProfileScreen() {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
       
-      {/* Header */}
+      {/* Header - Fixed at top */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Profile</Text>
         <View style={styles.headerButtons}>
@@ -613,7 +600,11 @@ export default function ProfileScreen() {
       {/* Error Message */}
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-      <ScrollView contentContainerStyle={styles.scroll}>
+      {/* Scrollable Content - Takes remaining space */}
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
         
         {/* Profile Card */}
         <View style={styles.profileCard}>
@@ -637,6 +628,13 @@ export default function ProfileScreen() {
           </View>
           
           <Text style={styles.name}>{user.fullname || 'User'}</Text>
+          
+          {/* Role Badge - Shows correct role based on isHost state */}
+          <View style={[styles.roleBadge, isHost ? styles.hostBadge : styles.guestBadge]}>
+            <Text style={styles.roleText}>
+              {isHost ? '🏠 Host' : '👤 Guest'}
+            </Text>
+          </View>
           
           <View style={styles.statusContainer}>
             <View style={[styles.statusDot, { backgroundColor: getStatusColor(user.status) }]} />
@@ -761,12 +759,12 @@ export default function ProfileScreen() {
                 {habits.length > 0 ? (
                   habits.map((habit, index) => (
                     <TouchableOpacity 
-                      key={index} 
+                      key={habit.id || index} 
                       style={styles.habitItem} 
                       onPress={() => isEditing && removeHabit(index)}
                       disabled={!isEditing}
                     >
-                      <Text style={styles.habitText}>{habit}</Text>
+                      <Text style={styles.habitText}>{habit.text || habit}</Text>
                       {isEditing && <Text style={styles.removeIcon}> ✕</Text>}
                     </TouchableOpacity>
                   ))
@@ -842,131 +840,134 @@ export default function ProfileScreen() {
           )}
         </View>
 
-        {/* Action Buttons */}
-        <View style={styles.actions}>
-          <TouchableOpacity style={[styles.action, styles.switchAction]} onPress={switchRole}>
-            <Text style={styles.actionText}>{isHost ? '👤 Guest Mode' : '🏠 Host Mode'}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.action, styles.logoutAction]} onPress={doLogout}>
-            <Text style={styles.actionText}>🚪 Logout</Text>
-          </TouchableOpacity>
-        </View>
+        {/* Add extra bottom padding to scroll content to avoid buttons overlap */}
+        <View style={{ height: 20 }} />
+      </ScrollView>
 
-        {/* Family Modal */}
-        <Modal visible={showFamilyModal} animationType="slide" transparent>
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>
-                  {editMemberIndex !== null ? 'Edit' : 'Add'} Family Member
+      {/* Fixed Bottom Actions - Always visible at bottom */}
+      <View style={styles.fixedActions}>
+        <TouchableOpacity style={[styles.action, styles.switchAction]} onPress={switchRole}>
+          <Text style={styles.actionText}>{isHost ? '👤 Switch to Guest' : '🏠 Switch to Host'}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.action, styles.logoutAction]} onPress={doLogout}>
+          <Text style={styles.actionText}>🚪 Logout</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Family Modal */}
+      <Modal visible={showFamilyModal} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                {editMemberIndex !== null ? 'Edit' : 'Add'} Family Member
+              </Text>
+              <TouchableOpacity onPress={() => setShowFamilyModal(false)}>
+                <Text style={styles.modalClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <Text style={styles.label}>Full Name *</Text>
+              <TextInput 
+                style={styles.modalInput} 
+                placeholder="Enter full name"
+                placeholderTextColor="#999"
+                value={newMember.name} 
+                onChangeText={(t) => setNewMember({...newMember, name: t})} 
+              />
+              
+              <Text style={styles.label}>Relation *</Text>
+              <TextInput 
+                style={styles.modalInput} 
+                placeholder="e.g., Spouse, Child, Parent"
+                placeholderTextColor="#999"
+                value={newMember.relation} 
+                onChangeText={(t) => setNewMember({...newMember, relation: t})} 
+              />
+              
+              <View style={styles.modalRow}>
+                <View style={{ flex: 1, marginRight: 8 }}>
+                  <Text style={styles.label}>Age</Text>
+                  <TextInput 
+                    style={styles.modalInput} 
+                    placeholder="Age"
+                    placeholderTextColor="#999"
+                    value={newMember.age} 
+                    onChangeText={(t) => setNewMember({...newMember, age: t})} 
+                    keyboardType="numeric" 
+                  />
+                </View>
+                <View style={{ flex: 2 }}>
+                  <Text style={styles.label}>Email</Text>
+                  <TextInput 
+                    style={styles.modalInput} 
+                    placeholder="Email (optional)"
+                    placeholderTextColor="#999"
+                    value={newMember.email} 
+                    onChangeText={(t) => setNewMember({...newMember, email: t})} 
+                    keyboardType="email-address" 
+                  />
+                </View>
+              </View>
+              
+              <Text style={styles.label}>Gender</Text>
+              <View style={styles.genderRow}>
+                {['Male', 'Female', 'Other'].map((g) => (
+                  <TouchableOpacity
+                    key={g}
+                    style={[styles.genderBtn, newMember.gender === g && styles.genderActive]}
+                    onPress={() => setNewMember({...newMember, gender: g})}
+                  >
+                    <Text style={[styles.genderText, newMember.gender === g && styles.genderTextActive]}>{g}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              
+              <Text style={styles.label}>Phone</Text>
+              <TextInput 
+                style={styles.modalInput} 
+                placeholder="Phone number (optional)"
+                placeholderTextColor="#999"
+                value={newMember.phone} 
+                onChangeText={(t) => setNewMember({...newMember, phone: t})} 
+                keyboardType="phone-pad" 
+              />
+              
+              <Text style={styles.label}>Bio</Text>
+              <TextInput 
+                style={[styles.modalInput, styles.textArea]} 
+                placeholder="Short note or bio (optional)"
+                placeholderTextColor="#999"
+                value={newMember.bio} 
+                onChangeText={(t) => setNewMember({...newMember, bio: t})} 
+                multiline 
+                numberOfLines={3}
+              />
+            </ScrollView>
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity 
+                style={[styles.modalBtn, styles.modalCancel]} 
+                onPress={() => setShowFamilyModal(false)}
+              >
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.modalBtn, styles.modalSave]} 
+                onPress={saveFamily}
+              >
+                <Text style={styles.modalSaveText}>
+                  {editMemberIndex !== null ? 'Update' : 'Add'}
                 </Text>
-                <TouchableOpacity onPress={() => setShowFamilyModal(false)}>
-                  <Text style={styles.modalClose}>✕</Text>
-                </TouchableOpacity>
-              </View>
-
-              <ScrollView showsVerticalScrollIndicator={false}>
-                <Text style={styles.label}>Full Name *</Text>
-                <TextInput 
-                  style={styles.modalInput} 
-                  placeholder="Enter full name"
-                  placeholderTextColor="#999"
-                  value={newMember.name} 
-                  onChangeText={(t) => setNewMember({...newMember, name: t})} 
-                />
-                
-                <Text style={styles.label}>Relation *</Text>
-                <TextInput 
-                  style={styles.modalInput} 
-                  placeholder="e.g., Spouse, Child, Parent"
-                  placeholderTextColor="#999"
-                  value={newMember.relation} 
-                  onChangeText={(t) => setNewMember({...newMember, relation: t})} 
-                />
-                
-                <View style={styles.modalRow}>
-                  <View style={{ flex: 1, marginRight: 8 }}>
-                    <Text style={styles.label}>Age</Text>
-                    <TextInput 
-                      style={styles.modalInput} 
-                      placeholder="Age"
-                      placeholderTextColor="#999"
-                      value={newMember.age} 
-                      onChangeText={(t) => setNewMember({...newMember, age: t})} 
-                      keyboardType="numeric" 
-                    />
-                  </View>
-                  <View style={{ flex: 2 }}>
-                    <Text style={styles.label}>Email</Text>
-                    <TextInput 
-                      style={styles.modalInput} 
-                      placeholder="Email (optional)"
-                      placeholderTextColor="#999"
-                      value={newMember.email} 
-                      onChangeText={(t) => setNewMember({...newMember, email: t})} 
-                      keyboardType="email-address" 
-                    />
-                  </View>
-                </View>
-                
-                <Text style={styles.label}>Gender</Text>
-                <View style={styles.genderRow}>
-                  {['Male', 'Female', 'Other'].map((g) => (
-                    <TouchableOpacity
-                      key={g}
-                      style={[styles.genderBtn, newMember.gender === g && styles.genderActive]}
-                      onPress={() => setNewMember({...newMember, gender: g})}
-                    >
-                      <Text style={[styles.genderText, newMember.gender === g && styles.genderTextActive]}>{g}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-                
-                <Text style={styles.label}>Phone</Text>
-                <TextInput 
-                  style={styles.modalInput} 
-                  placeholder="Phone number (optional)"
-                  placeholderTextColor="#999"
-                  value={newMember.phone} 
-                  onChangeText={(t) => setNewMember({...newMember, phone: t})} 
-                  keyboardType="phone-pad" 
-                />
-                
-                <Text style={styles.label}>Bio</Text>
-                <TextInput 
-                  style={[styles.modalInput, styles.textArea]} 
-                  placeholder="Short note or bio (optional)"
-                  placeholderTextColor="#999"
-                  value={newMember.bio} 
-                  onChangeText={(t) => setNewMember({...newMember, bio: t})} 
-                  multiline 
-                  numberOfLines={3}
-                />
-              </ScrollView>
-
-              <View style={styles.modalActions}>
-                <TouchableOpacity 
-                  style={[styles.modalBtn, styles.modalCancel]} 
-                  onPress={() => setShowFamilyModal(false)}
-                >
-                  <Text style={styles.modalCancelText}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={[styles.modalBtn, styles.modalSave]} 
-                  onPress={saveFamily}
-                >
-                  <Text style={styles.modalSaveText}>
-                    {editMemberIndex !== null ? 'Update' : 'Add'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
+              </TouchableOpacity>
             </View>
           </View>
-        </Modal>
+        </View>
+      </Modal>
 
-        {/* Verification Modal */}
-        <VerificationModal />
-      </ScrollView>
+      {/* Verification Modal */}
+      <VerificationModal />
     </SafeAreaView>
   );
 }
@@ -1053,8 +1054,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   
-  scroll: {
-    paddingBottom: 20,
+  scrollContent: {
+    paddingBottom: 80, // Add padding to prevent content from hiding behind fixed buttons
   },
   
   // Profile Card
@@ -1099,6 +1100,30 @@ const styles = StyleSheet.create({
     marginBottom: 5,
     color: '#333',
   },
+  
+  // Role Badge
+  roleBadge: {
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 20,
+    marginBottom: 8,
+  },
+  hostBadge: {
+    backgroundColor: '#007AFF20',
+    borderWidth: 1,
+    borderColor: '#007AFF',
+  },
+  guestBadge: {
+    backgroundColor: '#FF385C20',
+    borderWidth: 1,
+    borderColor: '#FF385C',
+  },
+  roleText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+  },
+  
   statusContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1397,13 +1422,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   
-  // Actions
-  actions: {
+  // Fixed Actions
+  fixedActions: {
     flexDirection: 'row',
     gap: 10,
-    marginHorizontal: 15,
-    marginTop: 20,
-    marginBottom: 20,
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    backgroundColor: '#F8F8F8',
+    borderTopWidth: 1,
+    borderTopColor: '#EEE',
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
   },
   action: {
     flex: 1,

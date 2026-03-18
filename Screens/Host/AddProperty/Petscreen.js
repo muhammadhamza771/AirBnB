@@ -15,7 +15,7 @@ import { PropertyContext } from "../../../context/PropertyContext";
 const primaryColor = "#FF385C";
 
 export default function CombinedHabitPetsScreen({ navigation }) {
-  const { updateMultiple } = useContext(PropertyContext);
+  const { updatePropertyData } = useContext(PropertyContext);
 
   const [habitsAllowed, setHabitsAllowed] = useState(true);
   const [habitList, setHabitList] = useState([""]);
@@ -48,22 +48,28 @@ export default function CombinedHabitPetsScreen({ navigation }) {
       ? petList.filter(item => item.trim() !== "")
       : [];
 
-    updateMultiple({
+    updatePropertyData("pets_and_habits", {
+      allowed: habitsAllowed || petsAllowed,
+      habitsAllowed,
+      names: filteredPets,
       habits: filteredHabits,
-      pets: filteredPets,
     });
 
     navigation.navigate("PropertyImageUpload");
   };
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
 
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>House Rules</Text>
-      </View>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>House Rules</Text>
+        </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* HABITS */}
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>📋 Special Habits</Text>
@@ -161,13 +167,14 @@ export default function CombinedHabitPetsScreen({ navigation }) {
           )}
         </View>
 
-        <View style={{ height: 80 }} />
+        {/* Spacer for footer */}
+        <View style={{ height: 120 }} />
       </ScrollView>
 
-      {/* Bottom Buttons */}
-      <View style={styles.bottomBar}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <Text style={styles.backText}>Back</Text>
+      {/* Sticky Footer exactly like Location Screen */}
+      <View style={styles.footer}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Text style={styles.back}>Back</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.nextBtn} onPress={handleNext}>
@@ -181,23 +188,33 @@ export default function CombinedHabitPetsScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#F8F9FA" },
 
+
   header: {
-    padding: 20,
-    backgroundColor: "#fff",
-    borderBottomWidth: 1,
-    borderColor: "#eee",
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    backgroundColor: '#FF385C',
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 6,
   },
+  headerTitle: { fontSize: 22, fontWeight: "700", color: "#111" },
 
-  headerTitle: { fontSize: 20, fontWeight: "700", color: "#111" },
-
-  scrollContent: { padding: 20 },
-
-  card: { backgroundColor: "#fff", padding: 18, borderRadius: 14, marginBottom: 20 },
+  card: {
+    backgroundColor: "#fff",
+    padding: 18,
+    borderRadius: 14,
+    marginBottom: 20,
+  },
 
   sectionTitle: { fontSize: 18, fontWeight: "600", marginBottom: 15 },
 
   toggleRow: { flexDirection: "row", marginBottom: 15 },
-
   toggleBtn: {
     flex: 1,
     paddingVertical: 10,
@@ -207,9 +224,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginRight: 10,
   },
-
   activeBtn: { backgroundColor: primaryColor, borderColor: primaryColor },
-
   toggleText: { fontSize: 15, color: "#666" },
   activeText: { color: "#fff", fontWeight: "600" },
 
@@ -230,21 +245,30 @@ const styles = StyleSheet.create({
     borderColor: primaryColor,
     borderRadius: 10,
     padding: 10,
+    marginBottom: 5,
   },
-
   addText: { marginLeft: 6, color: primaryColor, fontWeight: "600" },
 
-  bottomBar: {
+  footer: {
     flexDirection: "row",
-    padding: 15,
-    backgroundColor: "#fff",
+    justifyContent: "space-between",
+    padding: 20,
     borderTopWidth: 1,
     borderColor: "#eee",
+    backgroundColor: "#fff",
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
   },
-
-  backBtn: { flex: 1, padding: 14, alignItems: "center" },
-  backText: { color: primaryColor, fontWeight: "600" },
-
-  nextBtn: { flex: 1, backgroundColor: primaryColor, padding: 14, borderRadius: 25, alignItems: "center" },
+  back: { textDecorationLine: "underline", fontSize: 16, color: "#666" },
+  nextBtn: {
+    backgroundColor: primaryColor,
+    paddingHorizontal: 30,
+    paddingVertical: 14,
+    borderRadius: 10,
+    alignItems: "center",
+  },
   nextText: { color: "#fff", fontWeight: "600" },
 });

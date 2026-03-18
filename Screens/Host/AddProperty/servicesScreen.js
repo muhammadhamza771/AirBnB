@@ -1,4 +1,4 @@
-import React, { useState, useContext } from "react";
+import React, { useState, useContext, useEffect } from "react";
 import {
   View,
   Text,
@@ -7,152 +7,123 @@ import {
   ScrollView,
   SafeAreaView,
   StatusBar,
+  Dimensions,
+  TextInput,
 } from "react-native";
-import { PropertyContext } from '../../../context/PropertyContext';
+import { PropertyContext } from "../../../context/PropertyContext";
 
+const { width } = Dimensions.get("window");
+const isTablet = width >= 768;
 const primaryColor = "#FF385C";
 
+const SERVICES = [
+  { id: "breakfast", name: "Breakfast", icon: "🍳", defaultAmount: 500 },
+  { id: "laundry", name: "Laundry", icon: "🧺", defaultAmount: 200 },
+  { id: "cleaning", name: "Daily Cleaning", icon: "🧹", defaultAmount: 1000 },
+  { id: "pickup", name: "Airport Pickup", icon: "🚗", defaultAmount: 3000 },
+  { id: "car_rental", name: "Car Rental", icon: "🔑", defaultAmount: 5000 },
+  { id: "guide", name: "Local Guide", icon: "🗺️", defaultAmount: 2000 },
+];
+
 export default function ServicesScreen({ navigation }) {
+  const { propertyData, updatePropertyData } = useContext(PropertyContext);
 
-  const [services, setServices] = useState([
-    { id: 1, name: "BREAKFAST", selected: false, icon: "🍳" },
-    { id: 2, name: "LAUNDRY", selected: false, icon: "🧺" },
-    { id: 3, name: "DAILY CLEANING", selected: false, icon: "🧹" },
-    { id: 4, name: "AIRPORT PICKUP", selected: false, icon: "✈️" },
-    { id: 5, name: "CAR RENTAL", selected: false, icon: "🚗" },
-    { id: 6, name: "LOCAL GUIDE", selected: false, icon: "🗺️" },
-  ]);
-
-  const context = useContext(PropertyContext);
-  const propertyData = context ? context.propertyData : {};
-  const updatePropertyData = context ? context.updatePropertyData : () => {};
+  const [services, setServices] = useState(
+    SERVICES.map((item) => {
+      const existing = propertyData.services.find(s => s.id === item.id);
+      return {
+        ...item,
+        selected: existing ? true : false,
+        amount: existing ? existing.price.toString() : item.defaultAmount.toString(),
+      };
+    })
+  );
 
   const toggleService = (id) => {
-    const updatedServices = services.map(service =>
-      service.id === id ? { ...service, selected: !service.selected } : service
+    setServices((prev) =>
+      prev.map((service) =>
+        service.id === id
+          ? { ...service, selected: !service.selected }
+          : service
+      )
     );
-    setServices(updatedServices);
+  };
+
+  const updateAmount = (id, value) => {
+    const numericValue = value.replace(/[^0-9]/g, "");
+    setServices((prev) =>
+      prev.map((service) =>
+        service.id === id ? { ...service, amount: numericValue } : service
+      )
+    );
   };
 
   const handleNext = () => {
-    const selectedServices = services.filter(s => s.selected).map(s => s.name);
-    updatePropertyData('services', selectedServices);
-    navigation.navigate("SafetyDetailsScreen", { 
-      services: selectedServices
-    });
+    const selectedServices = services
+      .filter(s => s.selected)
+      .map(s => ({ id: s.id, name: s.name, price: Number(s.amount) || s.defaultAmount }));
+
+    updatePropertyData("services", selectedServices);
+    navigation.navigate("LocationScreen");
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
-      {/* Header with Close and Menu */}
+      {/* ===== HEADER ===== */}
       <View style={styles.header}>
        
-     
+        <Text style={styles.headerTitle}>Services</Text>
+        <View style={{ width: 50 }} />
       </View>
 
-   
-
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Title Section */}
-        <Text style={styles.mainTitle}>What services do you provide?</Text>
-        <Text style={styles.subtitle}>
-          Let guests know if you offer any extra services during their stay.
-        </Text>
+        <Text style={styles.mainTitle}>What services do you offer?</Text>
+        <Text style={styles.subtitle}>Select all that apply and set your prices</Text>
 
-        {/* Services Cards Grid */}
         <View style={styles.cardsGrid}>
           {services.map((service) => (
-            <TouchableOpacity
-              key={service.id}
-              style={[
-                styles.serviceCard,
-                service.selected && styles.serviceCardSelected
-              ]}
-              onPress={() => toggleService(service.id)}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.serviceIcon}>{service.icon}</Text>
-              <Text style={[
-                styles.serviceName,
-                service.selected && styles.serviceNameSelected
-              ]}>
-                {service.name}
-              </Text>
+            <View key={service.id} style={styles.serviceItem}>
+              <TouchableOpacity
+                style={[styles.serviceCard, service.selected && styles.serviceCardSelected]}
+                onPress={() => toggleService(service.id)}
+              >
+                <Text style={styles.serviceIcon}>{service.icon}</Text>
+                <Text style={[styles.serviceName, service.selected && styles.serviceNameSelected]}>
+                  {service.name}
+                </Text>
+              </TouchableOpacity>
+
               {service.selected && (
-                <View style={styles.selectedBadge}>
-                  <Text style={styles.selectedBadgeText}>✓</Text>
+                <View style={styles.priceContainer}>
+                  <View style={styles.priceInputWrapper}>
+                    <Text style={styles.currencySymbol}>Rs</Text>
+                    <TextInput
+                      style={styles.priceInput}
+                      keyboardType="numeric"
+                      value={service.amount}
+                      onChangeText={(value) => updateAmount(service.id, value)}
+                      placeholder="0"
+                      placeholderTextColor="#999"
+                    />
+                  </View>
                 </View>
               )}
-            </TouchableOpacity>
+            </View>
           ))}
         </View>
 
-        {/* Selected Count */}
-        <View style={styles.selectedCountContainer}>
-          <Text style={styles.selectedCountText}>
-            {services.filter(s => s.selected).length} services selected
-          </Text>
-        </View>
-
-        {/* Property Data Summary */}
-        <View style={styles.dataSummaryCard}>
-          <Text style={styles.dataSummaryTitle}>📋 Property Data Summary</Text>
-          <View style={styles.dataSummaryContent}>
-            <Text style={styles.dataRow}>
-              <Text style={styles.dataLabel}>Name:</Text> {propertyData.propertyName || 'Not set'}
-            </Text>
-            <Text style={styles.dataRow}>
-              <Text style={styles.dataLabel}>Type:</Text> {propertyData.propertyType || 'Not set'}
-            </Text>
-            <Text style={styles.dataRow}>
-              <Text style={styles.dataLabel}>Guests:</Text> {propertyData.guestCapacity || 0}
-            </Text>
-            <Text style={styles.dataRow}>
-              <Text style={styles.dataLabel}>Rooms:</Text> {Object.keys(propertyData.rooms || {}).length || 0}
-            </Text>
-            <Text style={styles.dataRow}>
-              <Text style={styles.dataLabel}>Images:</Text> {(propertyData.images || []).length}
-            </Text>
-            <Text style={styles.dataRow}>
-              <Text style={styles.dataLabel}>Price:</Text> ${propertyData.price || 0}
-            </Text>
-            <Text style={styles.dataRow}>
-              <Text style={styles.dataLabel}>Discounts:</Text> {(propertyData.discounts || []).length}
-            </Text>
-            <Text style={styles.dataRow}>
-              <Text style={styles.dataLabel}>Booking:</Text> {propertyData.bookingType || 'instant'}
-            </Text>
-            <Text style={styles.dataRow}>
-              <Text style={styles.dataLabel}>Services:</Text> {services.filter(s => s.selected).length}
-            </Text>
-            <Text style={styles.dataRow}>
-              <Text style={styles.dataLabel}>Amenities:</Text> {(propertyData.amenities || []).length}
-            </Text>
-            <Text style={styles.dataRow}>
-              <Text style={styles.dataLabel}>Cancellation:</Text> {propertyData.cancellationPolicy || 'Not set'}
-            </Text>
-            <Text style={styles.dataRow}>
-              <Text style={styles.dataLabel}>Safety:</Text> {Object.keys(propertyData.safetyDetails || {}).length > 0 ? '✓ Set' : 'Not set'}
-            </Text>
-          </View>
-        </View>
+        <View style={{ height: isTablet ? 160 : 120 }} />
       </ScrollView>
 
       {/* Bottom Buttons */}
       <View style={styles.bottomButtons}>
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Text style={styles.backButtonText}>Back</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity 
-          style={styles.nextButton}
-          onPress={handleNext}
-        >
+        <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
           <Text style={styles.nextButtonText}>Next</Text>
         </TouchableOpacity>
       </View>
@@ -161,177 +132,163 @@ export default function ServicesScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#FFFFFF",
+  container: { 
+    flex: 1, 
+    backgroundColor: "#FFFFFF" 
   },
+
+  // ===== HEADER STYLES =====
   header: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingTop: 15,
-    paddingBottom: 10,
-  },
-  headerText: {
-    fontSize: 24,
-    color: "#1A1A1A",
-  },
-  stepContainer: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-  },
-  stepText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#666666",
-    letterSpacing: 0.5,
-  },
-  scrollContent: {
-    paddingHorizontal: 20,
-    paddingBottom: 100,
-  },
-  mainTitle: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: "#1A1A1A",
-    marginTop: 10,
-    marginBottom: 10,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: "#666666",
-    marginBottom: 30,
-    lineHeight: 22,
-  },
-  cardsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-    marginBottom: 20,
-  },
-  serviceCard: {
-    width: "48%",
-    backgroundColor: "#F8F9FA",
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 15,
     alignItems: "center",
-    borderWidth: 2,
-    borderColor: "transparent",
-    position: "relative",
-  },
-  serviceCardSelected: {
-    borderColor: primaryColor,
-    backgroundColor: "#FFFFFF",
-    shadowColor: primaryColor,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    backgroundColor: "#FF385C",
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
     elevation: 4,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 6,
   },
-  serviceIcon: {
-    fontSize: 32,
-    marginBottom: 10,
-  },
-  serviceName: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#1A1A1A",
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#fff",
     textAlign: "center",
   },
-  serviceNameSelected: {
-    color: primaryColor,
+
+  scrollContent: { 
+    paddingHorizontal: 20, 
+    paddingBottom: isTablet ? 160 : 120 
   },
-  selectedBadge: {
-    position: "absolute",
-    top: 10,
-    right: 10,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: primaryColor,
-    justifyContent: "center",
-    alignItems: "center",
+  
+  mainTitle: { 
+    fontSize: isTablet ? 32 : 28, 
+    fontWeight: "700", 
+    color: "#1A1A1A", 
+    marginTop: 10, 
+    marginBottom: 10 
   },
-  selectedBadgeText: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    fontWeight: "bold",
+  
+  subtitle: { 
+    fontSize: isTablet ? 18 : 16, 
+    color: "#666", 
+    marginBottom: 30 
   },
-  selectedCountContainer: {
-    alignItems: "center",
-    marginTop: 10,
-    marginBottom: 20,
+  
+  cardsGrid: { 
+    flexDirection: "row", 
+    flexWrap: "wrap", 
+    justifyContent: "space-between" 
   },
-  selectedCountText: {
-    fontSize: 14,
-    color: "#666666",
-    fontWeight: "500",
+  
+  serviceItem: { 
+    width: "48%",
+    marginBottom: 15
   },
-  bottomButtons: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: "#FFFFFF",
-    borderTopWidth: 1,
-    borderTopColor: "#F0F0F0",
+  
+  serviceCard: { 
+    backgroundColor: "#F8F9FA", 
+    borderRadius: 16, 
+    padding: 20, 
+    alignItems: "center", 
+    borderWidth: 2, 
+    borderColor: "transparent" 
   },
-  backButton: {
-    flex: 1,
-    paddingVertical: 14,
-   
-    borderColor: primaryColor,
-    alignItems: "center",
-    marginRight: 100,
+  
+  serviceCardSelected: { 
+    borderColor: primaryColor, 
+    backgroundColor: "#FFFFFF" 
   },
-  backButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: primaryColor,
+  
+  serviceIcon: { 
+    fontSize: isTablet ? 36 : 32, 
+    marginBottom: 10 
   },
-  nextButton: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 30,
-    backgroundColor: primaryColor,
-    alignItems: "center",
-    marginLeft: 10,
+  
+  serviceName: { 
+    fontSize: isTablet ? 16 : 14, 
+    fontWeight: "600", 
+    color: "#1A1A1A", 
+    textAlign: "center" 
   },
-  nextButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#FFFFFF",
+  
+  serviceNameSelected: { 
+    color: primaryColor 
   },
-  dataSummaryCard: {
-    backgroundColor: "#F8F9FA",
-    borderRadius: 16,
-    padding: 16,
-    marginTop: 30,
-    marginBottom: 20,
-    borderLeftWidth: 4,
-    borderLeftColor: primaryColor,
+  
+  priceContainer: { 
+    marginTop: 8 
   },
-  dataSummaryTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#1A1A1A",
-    marginBottom: 12,
+  
+  priceInputWrapper: { 
+    flexDirection: "row", 
+    alignItems: "center", 
+    borderWidth: 1, 
+    borderColor: "#DDD", 
+    borderRadius: 8, 
+    backgroundColor: "#FFF", 
+    overflow: "hidden" 
   },
-  dataSummaryContent: {
-    gap: 8,
+  
+  currencySymbol: { 
+    paddingHorizontal: 10, 
+    fontSize: 14, 
+    fontWeight: "600", 
+    color: "#666", 
+    backgroundColor: "#F5F5F5", 
+    paddingVertical: 8, 
+    borderRightWidth: 1, 
+    borderRightColor: "#DDD" 
   },
-  dataRow: {
-    fontSize: 14,
-    color: "#4A4A4A",
-    lineHeight: 20,
+  
+  priceInput: { 
+    flex: 1, 
+    paddingVertical: 8, 
+    paddingHorizontal: 10, 
+    fontSize: 14, 
+    color: "#333" 
   },
-  dataLabel: {
-    fontWeight: "600",
-    color: "#1A1A1A",
+  
+  bottomButtons: { 
+    position: "absolute", 
+    bottom: 0, 
+    left: 0, 
+    right: 0, 
+    flexDirection: "row", 
+    justifyContent: "space-between", 
+    paddingHorizontal: 20, 
+    paddingVertical: 16, 
+    backgroundColor: "#fff", 
+    borderTopWidth: 1, 
+    borderTopColor: "#F0F0F0" 
+  },
+  
+  backButton: { 
+    flex: 1, 
+    paddingVertical: 14, 
+    marginRight: 10 
+  },
+  
+  backButtonText: { 
+    fontSize: 16, 
+    fontWeight: "600", 
+    color: 'black'
+  },
+  
+  nextButton: { 
+    backgroundColor: '#FF385C', 
+    paddingHorizontal: 35, 
+    paddingVertical: 14, 
+    borderRadius: 10 
+  },
+  
+  nextButtonText: { 
+    fontSize: 16, 
+    fontWeight: "600", 
+    color: "#fff" 
   },
 });

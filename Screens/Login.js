@@ -6,16 +6,17 @@ import {
   TouchableOpacity,
   TextInput,
   ActivityIndicator,
-  Alert
+  Alert,
+  ScrollView,
+  StatusBar
 } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
+import Icon from 'react-native-vector-icons/Ionicons';
 import { AuthContext } from '../context/AuthContext';
 import { useNavigation } from '@react-navigation/native';
 import { loginUser } from '../BackendServices/Apiservices';
 
 const primaryColor = '#FF385C';
-const textColor = '#222222';
-const subtitleColor = '#717171';
-const borderColor = '#DDDDDD';
 
 const LoginScreen = () => {
   const navigation = useNavigation();
@@ -26,6 +27,7 @@ const LoginScreen = () => {
     password: '',
   });
 
+  const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -34,16 +36,8 @@ const LoginScreen = () => {
   };
 
   const handleLogin = async () => {
-    // Validation
     if (!formData.email || !formData.password) {
       setErrorMessage('Please enter email and password');
-      return;
-    }
-
-    // Email format validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email)) {
-      setErrorMessage('Please enter a valid email address');
       return;
     }
 
@@ -51,19 +45,11 @@ const LoginScreen = () => {
     setLoading(true);
 
     try {
-      const response = await loginUser({
-        email: formData.email,
-        password: formData.password,
-      });
+      const response = await loginUser(formData);
 
-      console.log('Login Response:', response);
-
-      // Check if login successful
       if (response && response.success && response.user) {
-        // Call context login with full response
         login(response);
-        
-        // Navigate to GuestTab (default)
+
         navigation.reset({
           index: 0,
           routes: [{ name: 'GuestTab' }],
@@ -71,231 +57,195 @@ const LoginScreen = () => {
       } else {
         setErrorMessage(response.message || 'Login failed');
       }
-
     } catch (error) {
-      console.log('Login Error:', error);
-      
-      const errorMsg = 
+      const errorMsg =
         error.response?.data?.message ||
         error.message ||
-        'Login failed. Please check your credentials and try again.';
-      
+        'Login failed. Please try again.';
+
       setErrorMessage(errorMsg);
-      
-      Alert.alert(
-        'Login Failed',
-        errorMsg,
-        [{ text: 'OK' }]
-      );
+      Alert.alert('Login Failed', errorMsg);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.backArrow}>←</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Welcome Back</Text>
-      </View>
+    <LinearGradient colors={['#FF385C', '#FF6B81']} style={{ flex: 1 }}>
+      <StatusBar barStyle="light-content" />
 
-      {/* Card */}
-      <View style={styles.card}>
-        <Text style={styles.title}>Login to your account</Text>
-        <Text style={styles.subtitle}>Enter your credentials to continue</Text>
-
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            placeholder="Email address"
-            placeholderTextColor="#9CA3AF"
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoCorrect={false}
-            value={formData.email}
-            onChangeText={(text) => handleInputChange('email', text)}
-            editable={!loading}
-          />
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Welcome Back 👋</Text>
+          <Text style={styles.headerSubtitle}>
+            Login to continue your journey
+          </Text>
         </View>
 
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            placeholder="Password"
-            placeholderTextColor="#9CA3AF"
-            secureTextEntry
-            value={formData.password}
-            onChangeText={(text) => handleInputChange('password', text)}
-            editable={!loading}
-          />
-        </View>
-
-        <TouchableOpacity 
-          style={styles.forgotPassword}
-          onPress={() => {
-            Alert.alert('Info', 'Forgot password feature coming soon!');
-          }}
-          disabled={loading}
-        >
-          <Text style={styles.forgotPasswordText}>Forgot password?</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.loginButton, loading && styles.loginButtonDisabled]}
-          onPress={handleLogin}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color="#FFF" size="small" />
-          ) : (
-            <Text style={styles.loginButtonText}>Log in</Text>
-          )}
-        </TouchableOpacity>
-
-        {errorMessage ? (
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorIcon}>⚠️</Text>
-            <Text style={styles.errorText}>{errorMessage}</Text>
+        {/* Card */}
+        <View style={styles.card}>
+          {/* Email */}
+          <View style={styles.inputWrapper}>
+            <Icon name="mail-outline" size={20} color="#999" />
+            <TextInput
+              style={styles.input}
+              placeholder="Email address"
+              placeholderTextColor="#999"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              value={formData.email}
+              onChangeText={(text) => handleInputChange('email', text)}
+              editable={!loading}
+            />
           </View>
-        ) : null}
 
-        <Text style={styles.orText}>OR</Text>
+          {/* Password */}
+          <View style={styles.inputWrapper}>
+            <Icon name="lock-closed-outline" size={20} color="#999" />
+            <TextInput
+              style={styles.input}
+              placeholder="Password"
+              placeholderTextColor="#999"
+              secureTextEntry={!showPassword}
+              value={formData.password}
+              onChangeText={(text) => handleInputChange('password', text)}
+              editable={!loading}
+            />
+            <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+              <Icon
+                name={showPassword ? 'eye-outline' : 'eye-off-outline'}
+                size={20}
+                color="#999"
+              />
+            </TouchableOpacity>
+          </View>
 
-        <View style={styles.signUpContainer}>
-          <Text style={styles.signUpPrompt}>Don't have an account?</Text>
-          <TouchableOpacity 
-            onPress={() => navigation.navigate('Signup')}
+          {/* Forgot Password */}
+          <TouchableOpacity
+            style={{ alignSelf: 'flex-end', marginBottom: 15 }}
             disabled={loading}
           >
-            <Text style={styles.signupText}>Sign up</Text>
+            <Text style={{ color: primaryColor, fontWeight: '600' }}>
+              Forgot password?
+            </Text>
           </TouchableOpacity>
+
+          {/* Login Button */}
+          <TouchableOpacity
+            style={[styles.button, loading && { opacity: 0.7 }]}
+            onPress={handleLogin}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.buttonText}>Log In</Text>
+            )}
+          </TouchableOpacity>
+
+          {/* Error */}
+          {errorMessage ? (
+            <Text style={styles.errorText}>{errorMessage}</Text>
+          ) : null}
+
+          {/* Divider */}
+          <Text style={styles.orText}>OR</Text>
+
+          {/* Signup */}
+          <View style={styles.signupRow}>
+            <Text style={{ color: '#777' }}>Don't have an account?</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
+              <Text style={styles.signupText}> Sign up</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
-    </View>
+
+      </ScrollView>
+    </LinearGradient>
   );
 };
 
 export default LoginScreen;
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: primaryColor,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingTop: 45,
-    paddingBottom: 20,
+  scrollContainer: {
+    flexGrow: 1,
+    justifyContent: 'center',
     paddingHorizontal: 20,
   },
-  backArrow: {
-    fontSize: 26,
-    color: '#FFF',
-    marginRight: 12,
+  header: {
+    alignItems: 'center',
+    marginBottom: 30,
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#FFF',
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  headerSubtitle: {
+    color: '#fff',
+    opacity: 0.9,
+    marginTop: 5,
   },
   card: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    paddingHorizontal: 24,
-    paddingVertical: 32,
+    backgroundColor: '#fff',
+    borderRadius: 25,
+    padding: 25,
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 15,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-    textAlign: 'center',
-    color: textColor,
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 15,
-    textAlign: 'center',
-    color: subtitleColor,
-    marginBottom: 24,
-  },
-  inputContainer: {
-    backgroundColor: '#FFF',
-    borderWidth: 1,
-    borderColor: borderColor,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    marginBottom: 16,
-  },
-  input: {
-    height: 52,
-    fontSize: 16,
-    color: textColor,
-  },
-  forgotPassword: {
-    alignSelf: 'flex-end',
-    marginBottom: 16,
-  },
-  forgotPasswordText: {
-    color: primaryColor,
-    fontWeight: '600',
-  },
-  loginButton: {
-    backgroundColor: primaryColor,
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 10,
-    minHeight: 55,
-  },
-  loginButtonDisabled: {
-    opacity: 0.6,
-  },
-  loginButtonText: {
-    color: '#FFF',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  errorContainer: {
+  inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FEE',
-    padding: 12,
-    borderRadius: 8,
-    marginTop: 10,
+    borderWidth: 1,
+    borderColor: '#eee',
+    borderRadius: 14,
+    paddingHorizontal: 15,
+    marginBottom: 18,
+    backgroundColor: '#fafafa',
   },
-  errorIcon: {
+  input: {
+    flex: 1,
+    height: 50,
+    marginLeft: 10,
+    color: '#222',
+    fontSize: 15,
+  },
+  button: {
+    backgroundColor: primaryColor,
+    paddingVertical: 16,
+    borderRadius: 14,
+    alignItems: 'center',
+    marginTop: 5,
+    shadowColor: primaryColor,
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+  },
+  buttonText: {
+    color: '#fff',
+    fontWeight: 'bold',
     fontSize: 16,
-    marginRight: 8,
   },
   errorText: {
     color: '#E53935',
-    flex: 1,
-    fontSize: 14,
+    textAlign: 'center',
+    marginTop: 12,
   },
   orText: {
     textAlign: 'center',
-    color: subtitleColor,
     marginVertical: 20,
+    color: '#777',
   },
-  signUpContainer: {
+  signupRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    alignItems: 'center',
-  },
-  signUpPrompt: {
-    color: subtitleColor,
-    fontSize: 16,
   },
   signupText: {
     color: primaryColor,
-    fontWeight: '700',
-    marginLeft: 6,
-    fontSize: 16,
+    fontWeight: 'bold',
   },
 });

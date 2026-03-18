@@ -1,9 +1,11 @@
+// navigation/PropertyStack.js
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { PropertyProvider } from '../context/PropertyContext';
+// ✅ PropertyProvider YAHAN SE HATAO - kyunke already App.js mein hai
+// import { PropertyProvider } from '../context/PropertyContext';  // ❌ REMOVE
 
 import Step1Basic from '../Screens/Host/AddProperty/Basic';
-import  PropertyName from '../Screens/Host/AddProperty/PropertyName';
+import PropertyName from '../Screens/Host/AddProperty/PropertyName';
 import PropertyType from '../Screens/Host/AddProperty/PropertyType';
 import GuestCapacity from '../Screens/Host/AddProperty/GuestCapacity';
 import RoomsScreen from '../Screens/Host/AddProperty/Rooms';
@@ -19,34 +21,38 @@ import PetsStepScreen from '../Screens/Host/AddProperty/Petscreen';
 import BookingTypeScreen from '../Screens/Host/AddProperty/BookingTypeScreen';
 import SafetyDetailsScreen from '../Screens/Host/AddProperty/safetydetailsscreen';
 import ServicesScreen from '../Screens/Host/AddProperty/servicesScreen';
+import AvailabilityScreen from '../Screens/Host/AddProperty/AvailabilityScreen';
 
 const Stack = createNativeStackNavigator();
 
 const PropertyStackNavigator = () => {
   return (
-    <PropertyProvider>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="Step1Basic" component={Step1Basic} />
-        <Stack.Screen name="PropertyName" component={PropertyName} />
-        <Stack.Screen name="Step2PropertyType" component={PropertyType} />
-        <Stack.Screen name="GuestCapacity" component={GuestCapacity} />
-        <Stack.Screen name="RoomsScreen" component={RoomsScreen} />
-        <Stack.Screen name="HouseHighlights" component={HouseHighlights} />
-        <Stack.Screen name="CreateDescriptionScreen" component={CreateDescriptionScreen} />
-        <Stack.Screen name="AmenitiesScreen" component={AmenitiesScreen} />
-        <Stack.Screen name="AddDiscountsScreen" component={AddDiscountsScreen} />
-        <Stack.Screen name="LocationScreen" component={AddressScreen} />
-        <Stack.Screen name="PropertyImageUpload" component={PropertyImageUpload} />
-        <Stack.Screen name="PriceScreen" component={PriceScreen} />
-        <Stack.Screen name="CancellationPoliciesScreen" component={CancellationPoliciesScreen} />
-        <Stack.Screen name="PetsStepScreen" component={PetsStepScreen} />
-        <Stack.Screen name="BookingTypeScreen" component={BookingTypeScreen} /> 
-        <Stack.Screen name="SafetyDetailsScreen" component={SafetyDetailsScreen} />
-        <Stack.Screen name="ServicesScreen" component={ServicesScreen} />
-      </Stack.Navigator>
-    </PropertyProvider>
+    // ✅ PropertyProvider HATAO - sirf Stack.Navigator rakho
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen 
+        name="Step1Basic" 
+        component={Step1Basic} 
+        // ✅ initialParams mat do
+      />
+      <Stack.Screen name="PropertyName" component={PropertyName} />
+      <Stack.Screen name="Step2PropertyType" component={PropertyType} />
+      <Stack.Screen name="GuestCapacity" component={GuestCapacity} />
+      <Stack.Screen name="RoomsScreen" component={RoomsScreen} />
+      <Stack.Screen name="HouseHighlights" component={HouseHighlights} />
+      <Stack.Screen name="CreateDescriptionScreen" component={CreateDescriptionScreen} />
+      <Stack.Screen name="AmenitiesScreen" component={AmenitiesScreen} />
+      <Stack.Screen name="AddDiscountsScreen" component={AddDiscountsScreen} />
+      <Stack.Screen name="LocationScreen" component={AddressScreen} />
+      <Stack.Screen name="PropertyImageUpload" component={PropertyImageUpload} />
+      <Stack.Screen name="PriceScreen" component={PriceScreen} />
+      <Stack.Screen name="CancellationPoliciesScreen" component={CancellationPoliciesScreen} />
+      <Stack.Screen name="PetsStepScreen" component={PetsStepScreen} />
+      <Stack.Screen name="BookingTypeScreen" component={BookingTypeScreen} /> 
+      <Stack.Screen name="SafetyDetailsScreen" component={SafetyDetailsScreen} />
+      <Stack.Screen name="ServicesScreen" component={ServicesScreen} />
+      <Stack.Screen name="AvailabilityScreen" component={AvailabilityScreen} />
+    </Stack.Navigator>
   );
 };
 
 export default PropertyStackNavigator;
-

@@ -1,4 +1,3 @@
-
 import React, { useState, useContext } from 'react';
 import {
   View,
@@ -6,22 +5,22 @@ import {
   TouchableOpacity,
   StyleSheet,
   FlatList,
-  ScrollView,
   SafeAreaView,
   StatusBar,
-  Alert,
+  Dimensions,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { PropertyContext } from '../../../context/PropertyContext';
 
-const AmenitiesScreen = ({ navigation, route }) => {
+const { width } = Dimensions.get('window');
+const CARD_WIDTH = (width - 48) / 2;
 
- 
-  const prevData = route?.params?.data || {};
-  const { updatePropertyData } = useContext(PropertyContext);
+const AmenitiesScreen = ({ navigation }) => {
+  const { propertyData, updatePropertyData } = useContext(PropertyContext);
 
+  // ✅ Load existing amenities from context
   const [selectedAmenities, setSelectedAmenities] = useState(
-    prevData.amenities || []
+    propertyData?.amenities || []
   );
 
   const amenitiesList = [
@@ -37,103 +36,82 @@ const AmenitiesScreen = ({ navigation, route }) => {
     { id: 'workspace', name: 'Workspace', icon: 'desktop-outline' },
     { id: 'fridge', name: 'Refrigerator', icon: 'ice-cream-outline' },
     { id: 'microwave', name: 'Microwave', icon: 'nuclear-outline' },
-  
     { id: 'balcony', name: 'Balcony', icon: 'home-outline' },
     { id: 'garden', name: 'Garden', icon: 'leaf-outline' },
     { id: 'security', name: 'Security Camera', icon: 'camera-outline' },
     { id: 'fire', name: 'Fire Extinguisher', icon: 'flame-outline' },
     { id: 'firstaid', name: 'First Aid Kit', icon: 'medkit-outline' },
     { id: 'power', name: 'Power Backup', icon: 'flash-outline' },
-   
   ];
 
   const toggleAmenity = (item) => {
     if (selectedAmenities.includes(item.id)) {
-      setSelectedAmenities(prev =>
-        prev.filter(a => a !== item.id)
-      );
+      setSelectedAmenities(prev => prev.filter(a => a !== item.id));
     } else {
       setSelectedAmenities(prev => [...prev, item.id]);
     }
   };
 
   const handleNext = () => {
-    // Save to context
+    // ✅ Save selected amenities using context update function
     updatePropertyData('amenities', selectedAmenities);
-    
-    const finalData = {
-      ...prevData,
-      amenities: selectedAmenities,
-    };
 
-    
-    Alert.alert(
-      'Property Data',
-      JSON.stringify(finalData, null, 2)
-    );
-
-   
-    navigation.navigate('AddDiscountsScreen', {
-      data: finalData,
-    });
+    navigation.navigate('ServicesScreen');
   };
 
   const renderAmenityCard = ({ item }) => {
     const isSelected = selectedAmenities.includes(item.id);
+
     return (
       <TouchableOpacity
-        style={[styles.amenityCard, isSelected && styles.selectedCard]}
+        activeOpacity={0.8}
+        style={[styles.card, isSelected && styles.selectedCard]}
         onPress={() => toggleAmenity(item)}
       >
         <Icon
           name={item.icon}
-          size={24}
-          color={isSelected ? '#FFF' : '#222'}
+          size={26}
+          color={isSelected ? '#fff' : '#333'}
         />
-        <Text style={[styles.amenityText, isSelected && styles.selectedText]}>
+        <Text style={[styles.cardText, isSelected && styles.selectedText]}>
           {item.name}
         </Text>
         {isSelected && (
-          <Icon
-            name="checkmark-circle"
-            size={20}
-            color="#FFF"
-            style={{ position: 'absolute', top: 8, right: 8 }}
-          />
+          <View style={styles.checkIcon}>
+            <Icon name="checkmark" size={14} color="#000" />
+          </View>
         )}
       </TouchableOpacity>
     );
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
 
-      <ScrollView>
+      <View style={styles.header}>
         <Text style={styles.title}>Tell guests what your place offers</Text>
+       
+      </View>
 
-        <FlatList
-          data={amenitiesList}
-          renderItem={renderAmenityCard}
-          keyExtractor={(item) => item.id}
-          numColumns={2}
-          scrollEnabled={false}
-          contentContainerStyle={styles.grid}
-        />
-      </ScrollView>
+      <FlatList
+        data={amenitiesList}
+        renderItem={renderAmenityCard}
+        keyExtractor={(item) => item.id}
+        numColumns={2}
+        contentContainerStyle={styles.list}
+        showsVerticalScrollIndicator={false}
+      />
 
-      <View style={styles.bottomNav}>
+      <View style={styles.footer}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Text style={styles.backText}>Back</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[
-            styles.nextButton,
-            selectedAmenities.length === 0 && styles.disabled,
-          ]}
-          onPress={handleNext}
+          style={[styles.nextButton, selectedAmenities.length === 0 && styles.disabled]}
           disabled={selectedAmenities.length === 0}
+          onPress={handleNext}
         >
           <Text style={styles.nextText}>Next</Text>
         </TouchableOpacity>
@@ -145,38 +123,48 @@ const AmenitiesScreen = ({ navigation, route }) => {
 export default AmenitiesScreen;
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#fff' },
-  title: { fontSize: 28, fontWeight: 'bold', padding: 20 },
-  grid: { paddingHorizontal: 16 },
-  amenityCard: {
-    width: '48%',
-    borderWidth: 1,
-    borderColor: '#ddd',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    alignItems: 'center',
-  },
-  selectedCard: {
-    backgroundColor: '#000',
-    borderColor: '#000',
-  },
-  amenityText: { marginTop: 8, color: '#222' },
-  selectedText: { color: '#fff' },
-  bottomNav: {
+  container: { flex: 1, backgroundColor: '#fff' },
+    // ===== HEADER =====
+  header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    padding: 20,
-    borderTopWidth: 1,
-    borderColor: '#eee',
-  },
-  backText: { fontSize: 16 },
-  nextButton: {
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
     backgroundColor: '#FF385C',
-    paddingHorizontal: 30,
-    paddingVertical: 14,
-    borderRadius: 8,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 6,
   },
+  title: { fontSize: 20, fontWeight: '700', color: '#111' },
+  subtitle: { fontSize: 14, color: '#666', marginTop: 6 },
+  list: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 100 },
+  card: {
+    width: CARD_WIDTH,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    paddingVertical: 20,
+    margin: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#eee',
+    elevation: 3,
+  },
+  selectedCard: { backgroundColor: '#ec1010', borderColor: '#f5eded' },
+  cardText: { marginTop: 10, fontSize: 14, fontWeight: '500', color: '#333', textAlign: 'center' },
+  selectedText: { color: '#fff' },
+  checkIcon: { position: 'absolute', top: 10, right: 10, backgroundColor: '#fff', borderRadius: 10, padding: 3 },
+  footer: {
+    position: 'absolute', bottom: 0, left: 0, right: 0,
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    padding: 20, borderTopWidth: 1, borderColor: '#eee', backgroundColor: '#fff',
+  },
+  backText: { fontSize: 16, fontWeight: '500' },
+  nextButton: { backgroundColor: '#FF385C', paddingHorizontal: 35, paddingVertical: 14, borderRadius: 10 },
   disabled: { backgroundColor: '#ccc' },
-  nextText: { color: '#fff', fontWeight: 'bold' },
+  nextText: { color: '#fff', fontWeight: '700' },
 });
